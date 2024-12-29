@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 
 namespace BE.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/")]
 	[ApiController]
 	public class AccountController : ControllerBase
 	{
@@ -129,12 +129,11 @@ namespace BE.Controllers
 		// Tạo JWT Token
 		private string GenerateJwtToken(IdentityUser user)
 		{
-			var claims = new[]
-			{
-			new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
-			new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-			new Claim(ClaimTypes.NameIdentifier, user.Id)
-		};
+			var claims = new[] {
+		new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
+		new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+		new Claim(ClaimTypes.NameIdentifier, user.Id)
+	};
 
 			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
 			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -143,7 +142,7 @@ namespace BE.Controllers
 				_configuration["Jwt:Issuer"],
 				_configuration["Jwt:Audience"],
 				claims,
-				expires: DateTime.Now.AddHours(1),
+				expires: DateTime.Now.AddHours(1),  // Bạn có thể thay đổi thời gian hết hạn tại đây
 				signingCredentials: creds
 			);
 
