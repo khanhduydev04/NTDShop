@@ -36,7 +36,12 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 //cấu hình jwt
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(options =>
+{
+	options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+	options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+	options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
 	.AddJwtBearer(options =>
 	{
 		options.RequireHttpsMetadata = false;
@@ -44,7 +49,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 		options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
 		{
 			ValidateIssuer = true,
-			ValidateAudience = true,
+			ValidateAudience = false,
 			ValidateLifetime = true,
 			ValidateIssuerSigningKey = true,
 			ValidIssuer = builder.Configuration["Jwt:Issuer"],
