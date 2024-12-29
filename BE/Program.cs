@@ -33,6 +33,8 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 	.AddEntityFrameworkStores<ApplicationDbContext>()
 	.AddDefaultTokenProviders();
 
+
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 //cấu hình jwt
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddJwtBearer(options =>

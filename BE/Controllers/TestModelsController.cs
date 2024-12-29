@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BE.Models;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace BE.Controllers
 {
+    
     [Route("api/[controller]")]
     [ApiController]
     public class TestModelsController : ControllerBase
@@ -22,38 +22,25 @@ namespace BE.Controllers
             _context = context;
         }
 
-		// GET: api/TestModels
-		[HttpGet]
-		public IActionResult GetModelSet()
+        // GET: api/TestModels
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<TestModel>>> GetModelSet()
         {
-			return Ok(new { Message = "test" });
-		}
+            return await _context.ModelSet.ToListAsync();
+        }
 
 		// GET: api/TestModels/5
 		[Authorize(Roles = "Customer")]
 		[HttpGet("{id}")]
-        public async Task<ActionResult<TestModel>> GetTestModel(int id)
-        {
-			// Lấy thông tin user từ token
-			var userName = User.Identity?.Name;
-			var roles = User.Claims
-							.Where(c => c.Type == ClaimTypes.Role)
-							.Select(c => c.Value)
-							.ToList();
+		public IActionResult CustomerEndpoint()
+		{
 
-			return Ok(new
-			{
-				IsAuthenticated = User.Identity?.IsAuthenticated ?? false,
-				UserName = userName,
-				Roles = roles
-			});
-
-			return Ok(new { Message = "You are logged in with customer" });
+			return Ok($"Hi");
 		}
 
-        // PUT: api/TestModels/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
+		// PUT: api/TestModels/5
+		// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+		[HttpPut("{id}")]
         public async Task<IActionResult> PutTestModel(int id, TestModel testModel)
         {
             if (id != testModel.Id)
@@ -82,10 +69,9 @@ namespace BE.Controllers
             return NoContent();
         }
 
-		// POST: api/TestModels
-		// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-		[Authorize(Roles = "Manager")]
-		[HttpPost]
+        // POST: api/TestModels
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
         public async Task<ActionResult<TestModel>> PostTestModel(TestModel testModel)
         {
             _context.ModelSet.Add(testModel);
