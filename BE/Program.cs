@@ -1,4 +1,5 @@
-﻿using BE.Models;
+﻿using BE.Helpers;
+using BE.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 
 //cấu hình identity
-builder.Services.AddIdentity<User, IdentityRole>()
+builder.Services.AddIdentity<User, IdentityRole>(options =>
+{
+	//mat khau mac dinh
+	options.Password.RequireDigit = false;  // khong yeu cau so
+	options.Password.RequireLowercase = false;  // khong yeu cau chu viet thuong
+	options.Password.RequireUppercase = false;  // // hoa
+	options.Password.RequireNonAlphanumeric = false;  // k yc ky tu dac biet
+	options.Password.RequiredLength = 6;  // max 6
+	options.Password.RequiredUniqueChars = 1;  // 
+	options.SignIn.RequireConfirmedEmail = false; // k yc xac thuc email
+})
 	.AddEntityFrameworkStores<ApplicationDbContext>()
 	.AddDefaultTokenProviders();
 
@@ -60,4 +71,10 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+//cac dich vu su dung
+using (var scope = app.Services.CreateScope())
+{
+	var services = scope.ServiceProvider;
+	await SeedRoleData.Initialize(services); //tao cac role ke thua user
+}
 app.Run();
