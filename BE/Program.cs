@@ -17,6 +17,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 	options.UseSqlServer(connectionString));
 
 
+///////////////////////////////////////////////////////////////
 //cấu hình identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
@@ -36,17 +37,27 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddJwtBearer(options =>
 	{
-		options.TokenValidationParameters = new TokenValidationParameters
+		options.RequireHttpsMetadata = false;
+		options.SaveToken = true;
+		options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
 		{
 			ValidateIssuer = true,
 			ValidateAudience = true,
 			ValidateLifetime = true,
+			ValidateIssuerSigningKey = true,
 			ValidIssuer = builder.Configuration["Jwt:Issuer"],
 			ValidAudience = builder.Configuration["Jwt:Audience"],
-			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]))
+			IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+				Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]))
 		};
 	});
+// Thêm Authorization
+builder.Services.AddAuthorization(options =>
+{
+	options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
+});
 
+//////////////////////////////////////////////////
 
 
 
@@ -66,16 +77,21 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-//thêm xác thực
+//////////////////////////////////////////////////
+// Kích hoạt Authentication và Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+///////////////////////////////////////////////////
 
 app.MapControllers();
 
+
+///////////////////////////////////////////////////
 //cac dich vu su dung
 using (var scope = app.Services.CreateScope())
 {
 	var services = scope.ServiceProvider;
 	await SeedRoleData.Initialize(services); //tao cac role ke thua user
 }
+///////////////////////////////////////////////////
 app.Run();

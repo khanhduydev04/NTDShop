@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BE.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace BE.Controllers
 {
@@ -33,6 +34,20 @@ namespace BE.Controllers
 		[HttpGet("{id}")]
         public async Task<ActionResult<TestModel>> GetTestModel(int id)
         {
+			// Lấy thông tin user từ token
+			var userName = User.Identity?.Name;
+			var roles = User.Claims
+							.Where(c => c.Type == ClaimTypes.Role)
+							.Select(c => c.Value)
+							.ToList();
+
+			return Ok(new
+			{
+				IsAuthenticated = User.Identity?.IsAuthenticated ?? false,
+				UserName = userName,
+				Roles = roles
+			});
+
 			return Ok(new { Message = "You are logged in with customer" });
 		}
 
