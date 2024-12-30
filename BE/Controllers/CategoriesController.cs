@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using BE.Helpers;
 using BE.Models;
+using BE.Services;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace BE.Controllers
 {
@@ -13,95 +10,125 @@ namespace BE.Controllers
     [ApiController]
     public class CategoriesController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly CategoryService _categoryService;
+        private readonly FirebaseStorageHelper _firebaseStorageHelper;
 
-        public CategoriesController(ApplicationDbContext context)
+        public CategoriesController(CategoryService categoryService, FirebaseStorageHelper firebaseStorageHelper)
         {
-            _context = context;
+            _categoryService = categoryService;
+            _firebaseStorageHelper = firebaseStorageHelper;
         }
 
-        // GET: api/Categories
+        // Lấy tất cả danh mục (bao gồm cả những danh mục bị xóa mềm)
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+        public async Task<IActionResult> GetAllCategories()
         {
-            return await _context.Categories.ToListAsync();
+            var categories = await _categoryService.GetAllCategoriesAsync();
+            return Ok(categories);
         }
 
-        // GET: api/Categories/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Category>> GetCategory(int id)
+        // Lấy tất cả danh mục hoạt động (không bị xóa mềm)
+        [HttpGet("active")]
+        public async Task<IActionResult> GetAllActiveCategories()
         {
-            var category = await _context.Categories.FindAsync(id);
+            var activeCategories = await _categoryService.GetAllCategoriesActiveAsync();
+            return Ok(activeCategories);
+        }
 
+        // Lấy danh mục theo ID (bao gồm cả những danh mục bị xóa mềm)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetCategoryById(int id)
+        {
+            var category = await _categoryService.GetCategoryByIdAsync(id);
             if (category == null)
             {
                 return NotFound();
             }
-
-            return category;
+            return Ok(category);
         }
 
-        // PUT: api/Categories/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCategory(int id, Category category)
+        // Lấy danh mục theo ID nhưng chỉ khi danh mục đang hoạt động
+        [HttpGet("active/{id}")]
+        public async Task<IActionResult> GetActiveCategoryById(int id)
         {
-            if (id != category.Id)
+            var category = await _categoryService.GetCategoryActivteByIdAsync(id);
+            if (category == null)
             {
-                return BadRequest();
+                return NotFound();
             }
+            return Ok(category);
+        }
 
-            _context.Entry(category).State = EntityState.Modified;
+        [HttpPost]
+        public async Task<IActionResult> CreateCategory([FromForm] Category category, [FromForm] IFormFile? logo)
+        {
+            if (logo == null)
+            {
+                return BadRequest("Logo file is required.");
+            }
 
             try
             {
-                await _context.SaveChangesAsync();
+                // Gọi phương thức UploadImageAsync mà không cần truyền contentType
+                var logoUrl = await _firebaseStorageHelper.UploadImageAsync(logo, "categories");
+
+                category.Logo = logoUrl;
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var createdCategory = await _categoryService.CreateCategoryAsync(category);
+                return CreatedAtAction(nameof(GetCategoryById), new { id = createdCategory.Id }, createdCategory);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!CategoryExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                Console.WriteLine("Error: " + ex.Message);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, Category updatedCategory)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
             }
 
-            return NoContent();
-        }
-
-        // POST: api/Categories
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Category>> PostCategory(Category category)
-        {
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetCategory", new { id = category.Id }, category);
-        }
-
-        // DELETE: api/Categories/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCategory(int id)
-        {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null)
+            var success = await _categoryService.UpdateCategoryAsync(id, updatedCategory);
+            if (!success)
             {
                 return NotFound();
             }
 
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPatch("soft-delete/{id}")]
+        public async Task<IActionResult> SoftDeleteCategory(int id)
+        {
+            var success = await _categoryService.SoftDeleteCategoryAsync(id);
+            if (!success)
+            {
+                return NotFound();
+            }
 
             return NoContent();
         }
 
-        private bool CategoryExists(int id)
+        // Xóa hoàn toàn danh mục
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> HardDeleteCategory(int id)
         {
-            return _context.Categories.Any(e => e.Id == id);
+            var success = await _categoryService.HardDeleteCategoryAsync(id);
+            if (!success)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
         }
     }
 }
