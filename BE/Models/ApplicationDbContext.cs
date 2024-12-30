@@ -9,6 +9,6 @@ namespace BE.Models
 	   : base(options)
 		{
 		}
-		public DbSet<TestModel> ModelSet { get; set; }
+		
 	}
 }

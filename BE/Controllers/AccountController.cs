@@ -1,5 +1,6 @@
-﻿using BE.Models;
-using BE.Models.Auth;
+﻿using BE.Auth;
+using BE.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -24,9 +25,13 @@ namespace BE.Controllers
 		private readonly RoleManager<IdentityRole> _roleManager;
 		private readonly IConfiguration _configuration;
 
+
+		/// <summary> MÔI TRƯỜNG TEST
 		private readonly string _secretKey = "supersecretkey1234500000000000000000000000000000000000000000000000000000000"; // Đảm bảo đây là SecretKey của bạn
 		private readonly string _issuer = "yourIssuer";  // Cấu hình của Issuer
 		private readonly string _audience = "yourAudience";  // Cấu hình của Audience
+		/// </summary>
+
 
 		public AccountController(UserManager<User> userManager, SignInManager<User> signInManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager)
 		{
@@ -37,7 +42,7 @@ namespace BE.Controllers
 		}
 
 
-		//kiểm tra thông tin của token
+		//kiểm tra thông tin của token - TRONG MÔI TRƯỜNG TEST
 		[HttpPost("validate-token")]
 		public IActionResult ValidateToken([FromBody] TokenModel model)
 		{
@@ -174,13 +179,18 @@ namespace BE.Controllers
 					}
 					
 					//dang nhap
-					var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, false);
+					var result = await _signInManager.PasswordSignInAsync(
+						user, 
+						model.Password, 
+						true, //Quyết định liệu cookie xác thực (authentication cookie) có được duy trì sau khi trình duyệt bị đóng hay không.
+						false //lock sau so lan nhat dinh
+						);
 					if (result.Succeeded)
 					{
 						// Lấy danh sách roles
 						var roles = await _userManager.GetRolesAsync(user);
 
-						var token = GenerateJwtToken(user);
+						var token = GenerateJwtTokenAsync(user);
 
 						return Ok(new { Token = token });
 					}
@@ -191,18 +201,70 @@ namespace BE.Controllers
 			return BadRequest(ModelState);
 		}
 
-		// Tạo JWT Token
-		private string GenerateJwtToken(IdentityUser user)
+		//thay đổi mật khẩu
+		//quen mat khau
+		//dat lai mat khau
+		//cap nhat thong tin 
+		//update dia chi giao hang
+		//dang xuất
+
+		//lay thong tin cua user hien tai
+		[Authorize] // phai dang nhap moi co the xem thong tin cua minh
+		[HttpGet("me")]
+		public async Task<IActionResult> GetUserCurrently()
 		{
-			var claims = new[]
+			// Lấy UserId từ claims trong JWT Token
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+			// Kiểm tra nếu không có UserId
+			if (string.IsNullOrEmpty(userId))
 			{
-			new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
+				return Unauthorized("Không có người dùng nào đang đăng nhập.");
+			}
+
+			// Lấy thông tin người dùng từ UserManager
+			var user = await _userManager.FindByIdAsync(userId);
+
+			if (user == null)
+			{
+				return NotFound("Người dùng không tồn tại.");
+			}
+
+			// Trả về thông tin người dùng dưới dạng JSON
+			return Ok(new
+			{
+				UserId = user.Id,
+				UserName = user.UserName,
+				Email = user.Email,
+				FullName = user.FullName, // Giả sử bạn có trường FullName trong ApplicationUser
+				PhoneNumber = user.PhoneNumber,
+				Adress = user.Address,
+				Gender = user.Gender,
+				DateOfBirth = user.DateOfBirth,
+				IsActive = user.IsActive,
+			});
+		}
+
+
+		// Tạo JWT Token
+		private async Task<string> GenerateJwtTokenAsync(User user)
+		{
+			//lay role cua user
+			var roles = await _userManager.GetRolesAsync(user);
+
+			var claims = new List<Claim>
+			{
+			new Claim(JwtRegisteredClaimNames.Sub, user.Id), //lay id khong lay username
 			new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 			new Claim(ClaimTypes.NameIdentifier, user.Id),
 			new Claim(ClaimTypes.Name, user.UserName),
-
-			new Claim(ClaimTypes.Role, "Customer") // Thêm claim role
+						
 		};
+			// Thêm từng vai trò vào claim
+			foreach (var role in roles)
+			{
+				claims.Add(new Claim(ClaimTypes.Role, role));
+			}
 
 			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
 			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -211,12 +273,13 @@ namespace BE.Controllers
 				issuer: _configuration["Jwt:Issuer"],
 				audience: _configuration["Jwt:Audience"],
 				claims: claims,
-				expires: DateTime.Now.AddMinutes(30),
+				expires: DateTime.Now.AddHours(2), // thoi gian cua token la 2 giờ
 				signingCredentials: creds
 			);
 
 			return new JwtSecurityTokenHandler().WriteToken(token);
 		}
+
 
 	}
 
