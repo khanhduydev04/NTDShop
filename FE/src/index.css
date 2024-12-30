@@ -6,7 +6,7 @@
 /* Định nghĩa các biến màu tùy chỉnh */
 :root {
     --primary-color: #068FFF;
-    --secondary-color: #16325B;
+    --secondary-color: #293855;
     --accent-color: #3ABEF9;
     --background-color: #A7E6FF;
     --text-color: #EEEEEE;
@@ -27,6 +27,11 @@
     color: white;
   }
   
+  .bg-accent {
+    background-color: var(--accent-color);
+    color: white;
+  }
+
   .text-primary {
     color: var(--primary-color);
   }

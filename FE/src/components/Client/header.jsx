@@ -52,7 +52,7 @@ export const Header = () => {
 
         {/* Cart */}
         <div className="menu_cart flex items-center">
-          <Link to="https://ttcenter.com.vn/gio-hang" title="Giỏ hàng" className="flex items-center">
+          <Link to="#" title="Giỏ hàng" className="flex items-center">
             <img src="https://ttcenter.com.vn/images/cart.svg" alt="Giỏ hàng" title="Giỏ hàng" className="w-6 h-6 mr-2" />
             <span>Giỏ hàng <strong className="number_cart">0</strong></span>
           </Link>
@@ -60,7 +60,7 @@ export const Header = () => {
 
         {/* Account */}
         <div className="menu_account flex items-center">
-          <Link to="https://ttcenter.com.vn/dang-nhap" title="Đăng nhập" className="flex items-center">
+          <Link to="/dang-nhap" title="Đăng nhập" className="flex items-center">
             <img src="https://ttcenter.com.vn/images/user.svg" alt="user" title="user" className="w-6 h-6 mr-2" />
             <span>Đăng nhập</span>
           </Link>
