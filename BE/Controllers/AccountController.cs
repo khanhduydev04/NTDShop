@@ -1,4 +1,5 @@
 ﻿using BE.Auth;
+using BE.DTOs;
 using BE.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -201,12 +202,76 @@ namespace BE.Controllers
 			return BadRequest(ModelState);
 		}
 
+
 		//thay đổi mật khẩu
+		[HttpPost("change-password")]
+		[Authorize]
+		public async Task<IActionResult> ChangePassword([FromBody] ChangePassword changePasswordDto)
+		{
+			if (!ModelState.IsValid)
+				return BadRequest(ModelState);
+
+			// Tìm người dùng theo ID
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); //id của user
+
+			var user = await _userManager.FindByIdAsync(userId);
+			if (user == null)
+				return NotFound(new { message = "Không tìm thấy người dùng." });
+
+			// Đổi mật khẩu
+			var result = await _userManager.ChangePasswordAsync(user, changePasswordDto.oldPassword, changePasswordDto.Password);
+
+			if (!result.Succeeded)
+				return BadRequest(result.Errors);
+
+			return Ok(new { message = "Mật khẩu đã thay đổi" });
+		}
+
 		//quen mat khau
 		//dat lai mat khau
+
 		//cap nhat thong tin 
+		[Authorize]
+		[HttpPut("change-profile")]
+		public async Task<IActionResult> UpdateUser([FromBody] UpdateUser updateUserDto)
+		{
+			if (!ModelState.IsValid)
+				return BadRequest(ModelState);
+			// Tìm người dùng theo ID
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); //id của user
+
+			// Tìm người dùng theo ID
+			var user = await _userManager.FindByIdAsync(userId);
+			if (user == null)
+				return NotFound("không tìm thấy.");
+
+			// Cập nhật thông tin người dùng			
+			user.FullName = updateUserDto.FullName ?? user.FullName;
+			user.PhoneNumber = updateUserDto.PhoneNumber ?? user.PhoneNumber;
+			user.Address = updateUserDto.Address ?? user.Address;
+			user.Gender = updateUserDto.Gender ?? user.Gender;
+			user.DateOfBirth = updateUserDto.DateOfBirth ?? user.DateOfBirth;
+			user.Email = updateUserDto.Email ?? user.Email;
+
+			// Lưu các thay đổi
+			var result = await _userManager.UpdateAsync(user);
+			if (!result.Succeeded)
+				return BadRequest(result.Errors);
+
+			return Ok(new { message = "Cập nhật thông tin thành công!" });
+		}
+
 		//update dia chi giao hang
-		//dang xuất
+
+		//dang xuất voi xoa cookie
+		[HttpPost("logout")]
+		[Authorize]
+		public async Task<IActionResult> Logout()
+		{
+			await _signInManager.SignOutAsync();  // Xóa cookie đăng nhập
+			return Ok(new { message = "Đăng xuất thành công!" });
+		}
+
 
 		//lay thong tin cua user hien tai
 		[Authorize] // phai dang nhap moi co the xem thong tin cua minh

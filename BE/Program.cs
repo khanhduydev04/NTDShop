@@ -59,9 +59,20 @@ builder.Services.AddAuthentication(options =>
 		};
 	});
 // Thêm Authorization
+//Cấu hình Authorize
 builder.Services.AddAuthorization(options =>
 {
-	options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
+	// Policy cho Customer
+	options.AddPolicy("CustomerOnly", policy =>
+		policy.RequireRole("Customer"));
+
+	// Policy cho Manager
+	options.AddPolicy("ManagerOnly", policy =>
+		policy.RequireRole("Manager"));
+
+	// Policy cho Admin và Customer (nếu cần)
+	options.AddPolicy("ManagerOrCustomer", policy =>
+		policy.RequireRole("Manager", "Customer"));
 });
 
 //////////////////////////////////////////////////
