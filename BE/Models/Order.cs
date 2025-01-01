@@ -24,7 +24,7 @@ namespace BE.Models
 
 		[Required(ErrorMessage = "Trạng thái không được để trống.")]
 		[DefaultValue("Đã đặt hàng")]
-		[RegularExpression(@"^(Đã đặt hàng|Đã thanh toán|Đã hủy)$", ErrorMessage = "Chỉ nhận các giá trị Đã đặt hàng, Đã thanh toán, Đã hủy.")]
+		[RegularExpression(@"^(Đã đặt hàng|Đang vận chuyển|Đã thanh toán|Đã hủy)$", ErrorMessage = "Chỉ nhận các giá trị Đã đặt hàng, Đang vận chuyển, Đã thanh toán, Đã hủy.")]
 		public required string Status { get; set; }
 
 		public string? Note { get; set; }
@@ -37,6 +37,7 @@ namespace BE.Models
 		public string PaymentMethod { get; set; } = "COD";
 
 		public DateTime Create_at { get; set; } = DateTime.UtcNow;
+		public DateTime? Update_at { get; set; }
 
 		[ForeignKey(nameof(User.Id))] // khoa ngoai lien ket voi bang User
 		public string? ManagerId { get; set; }
@@ -45,5 +46,7 @@ namespace BE.Models
 		[ForeignKey(nameof(User.Id))] // khoa ngoai lien ket voi bang User
 		public string? CustomerId { get; set; }
 		public User? Customer { get; set; } // order chi co 1 khach hang
+
+		public List<OrderDetail>? OrderDetails { get; set; } // mot order co nhieu ordeDetail
 	}
 }
