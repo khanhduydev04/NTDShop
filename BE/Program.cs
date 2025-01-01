@@ -102,6 +102,8 @@ FirebaseConfig.InitializeFirebase();
 
 // Register Service
 builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<IVnPayService, VnPayService>();
+
 
 // Register FirebaseStorageHelper to container DI
 builder.Services.AddSingleton<FirebaseStorageHelper>();
