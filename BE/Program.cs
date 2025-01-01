@@ -95,10 +95,7 @@ builder.Services.AddSwaggerGen(options =>
     // Ví dụ: options.MapType<YourModelType>(() => new OpenApiSchema { ... });
 });
 
-// Add DbContext
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+
 
 // Configure Firebase
 FirebaseConfig.InitializeFirebase();
