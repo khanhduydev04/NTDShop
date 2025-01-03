@@ -6,8 +6,8 @@ export const MainLayout = () => {
     return (
         <div>
             <Header />
-            <main className="flex-1 bg-[#F8F9FD]">
-                <div className="w-full max-w-[1200px] mx-auto py-10 px-4 lg:px-0">
+            <main className="flex-1 bg-[#F8F9FD] text-black">
+                <div className="w-full max-w-[1200px] mx-auto py-4 px-4 lg:px-0">
                     <Outlet />
                 </div>
             </main>
