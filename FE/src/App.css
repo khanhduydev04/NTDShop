@@ -1,0 +1,52 @@
+@keyframes snow {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(100vh);
+    }
+  }
+  
+  .snowflake {
+    position: fixed;
+    top: -10px;
+    z-index: 9999;
+    width: 10px;
+    height: 10px;
+    background-color: white;
+    opacity: 0.8;
+    border-radius: 50%;
+    box-shadow: 0 0 5px 2px rgba(255, 255, 255, 0.7); /* Tạo hiệu ứng mờ như ánh sáng phản chiếu */
+    animation: snow 10s linear infinite;
+  }
+  
+  .snowflake:nth-child(odd) {
+    width: 8px;
+    height: 8px;
+    animation-duration: 8s;
+  }
+  
+  .snowflake:nth-child(even) {
+    width: 12px;
+    height: 12px;
+    animation-duration: 12s;
+  }
+  
+  .snowflake::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.1) 70%);
+    transform: translate(-50%, -50%);
+  }
+  
+  .bg-auth {
+    background-image: url('https://www.trungtamtinhoc.edu.vn/wp-content/uploads/sites/2/2014/12/2011_merry_chirstmas-wide.jpg');
+    background-size: cover;
+    /* background-repeat: no-repeat; */
+    background-attachment: fixed
+  }
