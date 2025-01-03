@@ -36,26 +36,6 @@
     color: var(--primary-color);
   }
 
-  .text-secondary {
-    color: var(--secondary-color);
-  }
-
-  .text-accent {
-    color: var(--accent-color);
-  }
-
-  .border-primary {
-    border-color: var(--primary-color);
-  }
-
-  .border-secondary {
-    border-color: var(--secondary-color);
-  }
-
-  .border-accent {
-    border-color: var(--accent-color);
-  }
-  
   .button {
     background-color: var(--secondary-color);
     color: var(--text-color);
