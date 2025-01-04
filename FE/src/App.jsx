@@ -5,6 +5,7 @@ import { RegisterPage } from "./pages/Auth/register";
 import { AuthLayout } from "./layouts/AuthLayout";
 import { LoginPage } from "./pages/Auth/login";
 import ProductDetailPage from "./pages/Client/Products/productDetail";
+import { CartPage } from "./pages/Client/Cart";
 
 const routes = createBrowserRouter([
   //auth routes
@@ -32,6 +33,10 @@ const routes = createBrowserRouter([
       {
         path: "chi-tiet-san-pham",
         element: <ProductDetailPage />,
+      },
+      {
+        path: "gio-hang",
+        element: <CartPage />,
       }
     ]
   },
