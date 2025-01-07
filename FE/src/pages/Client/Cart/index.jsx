@@ -79,7 +79,7 @@ export const CartPage = () => {
                     <span className="h-12 w-12 flex justify-center items-center rounded-full border border-primary">
                         <FontAwesomeIcon icon={faShoppingCart} className="w-6 text-primary" />
                     </span>
-                    <span className="mt-2 text-sm md:text-base">Chọn sản phẩm</span>
+                    <span className="mt-2 text-sm md:text-base text-primary">Chọn sản phẩm</span>
                 </li>
                 <li className="flex flex-col items-center text-center relative step-item">
                     <span className="h-12 w-12 flex justify-center items-center rounded-full border border-gray-400">
