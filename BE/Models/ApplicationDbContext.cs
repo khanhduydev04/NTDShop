@@ -17,6 +17,8 @@ namespace BE.Models
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<Need> Needs { get; set; }
         public DbSet<ProductNeed> ProductNeeds { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
