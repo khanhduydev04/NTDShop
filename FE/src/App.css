@@ -47,6 +47,26 @@
   .bg-auth {
     background-image: url('https://www.trungtamtinhoc.edu.vn/wp-content/uploads/sites/2/2014/12/2011_merry_chirstmas-wide.jpg');
     background-size: cover;
-    /* background-repeat: no-repeat; */
     background-attachment: fixed
   }
+
+
+
+
+  /* cart-page */
+.step-item::after {
+  content: "";
+  position: absolute;
+  height: 1px;
+  width: 50px;
+  top: 30%;
+  right: -50%;
+  transform: translateY(-50%);
+  background-color: gray;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.step-item:last-child::after {
+  display: none;
+}
