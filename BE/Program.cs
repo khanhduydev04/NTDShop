@@ -174,6 +174,7 @@ services.AddScoped<ProductSpecificationService>();
 services.AddScoped<ProductImageService>();
 services.AddScoped<NeedService>();
 services.AddScoped<ProductNeedService>();
+services.AddScoped<IVnPayService, VnPayService>();
 
 // Đăng ký FirebaseStorageHelper
 services.AddSingleton<FirebaseStorageHelper>();
