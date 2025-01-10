@@ -12,7 +12,7 @@ namespace BE.Models
 
         [Required(ErrorMessage = "Slug là bắt buộc.")]
         public string Slug { get; set; }
-        public List<Product>? Products { get; set; }
+        //public List<Product>? Products { get; set; }
 
         public string? Logo { get; set; }
         public bool? IsDeleted { get; set; } = false;

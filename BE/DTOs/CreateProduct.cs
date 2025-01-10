@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BE.Models;
+using System.ComponentModel.DataAnnotations;
 
-namespace BE.Models
+namespace BE.DTOs
 {
-    public class Product
+    public class ProductDTO
     {
         public int Id { get; set; }
 
@@ -12,19 +13,18 @@ namespace BE.Models
 
         [Required(ErrorMessage = "Slug là bắt buộc.")]
         public string Slug { get; set; }
-
         public string? Description { get; set; }
         public string? Thumbnail { get; set; }
         public int CategoryId { get; set; }
-        public Category? Category { get; set; }
-
-        public List<ProductVariant>? ProductVariants { get; set; }
-        public List<ProductImage>? ProductImages { get; set; }
-        public ICollection<ProductNeed> ProductNeeds { get; set; } = new List<ProductNeed>();
-        public List<ProductSpecification>? ProductSpecifications { get; set; }
-
         public bool? IsDeleted { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
+        public List<int> NeedIds { get; set; } = new List<int>();
+
+        [Required(ErrorMessage = "ProductVariants là bắt buộc.")]
+        public required string ProductVariants { get; set; }
+
+        [Required(ErrorMessage = "ProductSpecifications là bắt buộc.")]
+        public required string ProductSpecifications { get; set; }
     }
 }
