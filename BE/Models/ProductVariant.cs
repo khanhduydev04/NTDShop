@@ -21,6 +21,8 @@ namespace BE.Models
         public int ProductId { get; set; }
         public Product? Product { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
         // Custom validation for logic
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {

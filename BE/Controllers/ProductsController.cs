@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using BE.DTOs;
-using Microsoft.Identity.Client.Extensions.Msal;
 
 namespace BE.Controllers
 {
@@ -16,24 +15,27 @@ namespace BE.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ProductService _productService;
-        private readonly ProductVariantService _variantService;
-        private readonly ProductSpecificationService _specificationService;
-        private readonly ProductImageService _imageService;
+        private readonly ProductImageService _productImageService;
+        private readonly ProductVariantService _productVariantService;
+        private readonly ProductSpecificationService _productSpecificationService;
+        private readonly ProductNeedService _productNeedService;
         private readonly FirebaseStorageHelper _firebaseStorageHelper;
 
         public ProductController(
             ApplicationDbContext context,
             ProductService productService,
-            ProductVariantService variantService,
-            ProductSpecificationService specificationService,
-            ProductImageService imageService,
+            ProductImageService productImageService,
+            ProductVariantService productVariantService,
+            ProductSpecificationService productSpecificationService,
+            ProductNeedService productNeedService,
             FirebaseStorageHelper firebaseStorageHelper)
         {
             _context = context;
             _productService = productService;
-            _variantService = variantService;
-            _specificationService = specificationService;
-            _imageService = imageService;
+            _productImageService = productImageService;
+            _productVariantService = productVariantService;
+            _productSpecificationService = productSpecificationService;
+            _productNeedService = productNeedService;
             _firebaseStorageHelper = firebaseStorageHelper;
         }
 
@@ -208,7 +210,7 @@ namespace BE.Controllers
         }
 
         // Cập nhật sản phẩm
-        [HttpPut("{id}")]
+        [HttpPatch("{id}")]
         public async Task<IActionResult> UpdateProduct(
             int id,
             [FromForm] UpdateProductDTO productDto,
@@ -223,8 +225,19 @@ namespace BE.Controllers
 
             try
             {
-                var productVariants = JsonSerializer.Deserialize<List<ProductVariant>>(productDto.ProductVariants);
-                var productSpecifications = JsonSerializer.Deserialize<List<ProductSpecification>>(productDto.ProductSpecifications);
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var productVariants = string.IsNullOrEmpty(productDto.ProductVariants)
+                    ? new List<ProductVariant>()
+                    : JsonSerializer.Deserialize<List<ProductVariant>>(productDto.ProductVariants, options);
+
+                var productSpecifications = string.IsNullOrEmpty(productDto.ProductSpecifications)
+                    ? new List<ProductSpecification>()
+                    : JsonSerializer.Deserialize<List<ProductSpecification>>(productDto.ProductSpecifications, options);
+
 
                 if (productVariants == null || productSpecifications == null)
                 {
@@ -241,92 +254,107 @@ namespace BE.Controllers
                 }
 
                 // Update Images
+                if (productDto.DeleteImageIds != null && productDto.DeleteImageIds.Any())
+                {
+                    var imagesToDelete = _context.ProductImages
+                        .Where(img => productDto.DeleteImageIds.Contains(img.Id) && img.ProductId == id)
+                        .ToList();
+
+                    _context.ProductImages.RemoveRange(imagesToDelete);
+                }
+
                 if (newImages != null && newImages.Any())
                 {
                     var newImageUrls = await UploadMultipleImagesAsync(newImages, "products/images");
+                    var newProductImages = newImageUrls
+                        .Select(url => new ProductImage { ProductId = id, ImageUrl = url })
+                        .ToList();
 
-                    // Remove old images
-                    var oldImages = _context.ProductImages.Where(img => img.ProductId == id).ToList();
-                    _context.ProductImages.RemoveRange(oldImages);
-
-                    // Add new images
-                    var newProductImages = newImageUrls.Select(url => new ProductImage { ProductId = id, ImageUrl = url }).ToList();
                     await _context.ProductImages.AddRangeAsync(newProductImages);
                 }
 
-                // Update Variants
+                // Update Product Variants
                 var existingVariants = _context.ProductVariants.Where(v => v.ProductId == id).ToList();
 
-                if (productVariants != null)
+                foreach (var updatedVariant in productVariants)
                 {
-                    foreach (var updatedVariant in productVariants)
+                    if (updatedVariant != null)
                     {
-                        // Update existing variant
-                        var existingVariant = existingVariants.FirstOrDefault(v => v.Id == updatedVariant.Id);
-                        if (existingVariant != null)
+                        if (updatedVariant.Id > 0) // Update existing variant
                         {
-                            existingVariant.Color = updatedVariant.Color;
-                            existingVariant.Price = updatedVariant.Price;
-                            existingVariant.Stock = updatedVariant.Stock;
-                            existingVariant.Storage = updatedVariant.Storage;
-
-                            _context.Entry(existingVariant).State = EntityState.Modified;
+                            var existingVariant = existingVariants.FirstOrDefault(v => v.Id == updatedVariant.Id);
+                            if (existingVariant != null)
+                            {
+                                existingVariant.Color = updatedVariant.Color;
+                                existingVariant.Price = updatedVariant.Price;
+                                existingVariant.Stock = updatedVariant.Stock;
+                                existingVariant.Storage = updatedVariant.Storage;
+                                existingVariant.IsDeleted = updatedVariant.IsDeleted;
+                                _context.Entry(existingVariant).State = EntityState.Modified;
+                            }
                         }
-                        else
+                        else // Add new variant
                         {
-                            // Add new variant
                             var newVariant = new ProductVariant
                             {
                                 ProductId = id,
                                 Color = updatedVariant.Color,
                                 Price = updatedVariant.Price,
                                 Stock = updatedVariant.Stock,
-                                Storage = updatedVariant.Storage
+                                Storage = updatedVariant.Storage,
+                                IsDeleted = false
                             };
                             await _context.ProductVariants.AddAsync(newVariant);
                         }
                     }
-
-                    // Remove variants not in the updated list
-                    var updatedVariantIds = productVariants.Select(v => v.Id).ToList();
-                    var variantsToRemove = existingVariants.Where(v => !updatedVariantIds.Contains(v.Id)).ToList();
-                    _context.ProductVariants.RemoveRange(variantsToRemove);
                 }
 
-                // Update Specifications
-                var oldSpecifications = _context.ProductSpecifications.Where(spec => spec.ProductId == id).ToList();
-                _context.ProductSpecifications.RemoveRange(oldSpecifications);
-
-                var newSpecifications = productSpecifications.Select(spec => new ProductSpecification
+                // Update Product Specifications
+                var existingSpecifications = _context.ProductSpecifications.Where(spec => spec.ProductId == id).ToList();
+                foreach (var updatedSpec in productSpecifications)
                 {
-                    ProductId = id,
-                    Name = spec.Name,
-                    Value = spec.Value
-                }).ToList();
-
-                await _context.ProductSpecifications.AddRangeAsync(newSpecifications);
+                    if (updatedSpec != null)
+                    {
+                        if (updatedSpec.Id > 0) // Update existing specification
+                        {
+                            var existingSpec = existingSpecifications.FirstOrDefault(spec => spec.Id == updatedSpec.Id);
+                            if (existingSpec != null)
+                            {
+                                existingSpec.Name = updatedSpec.Name;
+                                existingSpec.Value = updatedSpec.Value;
+                                _context.Entry(existingSpec).State = EntityState.Modified;
+                            }
+                        }
+                        else // Add new specification
+                        {
+                            var newSpec = new ProductSpecification
+                            {
+                                ProductId = id,
+                                Name = updatedSpec.Name,
+                                Value = updatedSpec.Value
+                            };
+                            await _context.ProductSpecifications.AddAsync(newSpec);
+                        }
+                    }
+                }
 
                 // Update ProductNeeds
                 if (productDto.NeedIds != null && productDto.NeedIds.Any())
                 {
                     var productNeedService = new ProductNeedService(_context);
-
-                    // Remove old ProductNeeds
                     await productNeedService.RemoveProductNeedsAsync(id);
-
-                    // Add new ProductNeeds
                     var newProductNeeds = await productNeedService.AddProductNeedsAsync(id, productDto.NeedIds);
                     existingProduct.ProductNeeds = newProductNeeds;
                 }
 
-                // Update Product Details
-                existingProduct.Name = productDto.Name;
-                existingProduct.Slug = productDto.Slug;
-                existingProduct.Description = productDto.Description;
-                existingProduct.CategoryId = productDto.CategoryId;
+                // Update Other Product Fields
+                existingProduct.Name = productDto.Name ?? existingProduct.Name;
+                existingProduct.Slug = productDto.Slug ?? existingProduct.Slug;
+                existingProduct.Description = productDto.Description ?? existingProduct.Description;
+                existingProduct.CategoryId = productDto.CategoryId ?? existingProduct.CategoryId;
                 existingProduct.UpdatedAt = DateTime.Now;
 
-                // Save changes to the database
+                // Save Changes
                 await _context.SaveChangesAsync();
                 await _context.Database.CommitTransactionAsync();
 

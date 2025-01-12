@@ -1,4 +1,5 @@
-﻿using BE.Models;
+﻿using BE.Helpers;
+using BE.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace BE.Services
@@ -6,10 +7,12 @@ namespace BE.Services
     public class ProductImageService
     {
         private readonly ApplicationDbContext _context;
+        private readonly FirebaseStorageHelper _firebaseStorageHelper;
 
-        public ProductImageService(ApplicationDbContext context)
+        public ProductImageService(ApplicationDbContext context, FirebaseStorageHelper firebaseStorageHelper)
         {
             _context = context;
+            _firebaseStorageHelper = firebaseStorageHelper;
         }
 
         public async Task<List<ProductImage>> GetImagesByProductIdAsync(int productId)

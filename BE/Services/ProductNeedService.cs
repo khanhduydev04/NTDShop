@@ -51,11 +51,5 @@ namespace BE.Services
             _context.ProductNeeds.RemoveRange(productNeeds);
             await _context.SaveChangesAsync();
         }
-
-        public async Task UpdateProductNeedsAsync(int productId, List<int> newNeedIds)
-        {
-            await RemoveProductNeedsAsync(productId);
-            await AddProductNeedsAsync(productId, newNeedIds);
-        }
     }
 }
