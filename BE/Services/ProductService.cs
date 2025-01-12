@@ -1,4 +1,6 @@
-﻿using BE.Models;
+﻿using BE.DTOs;
+using BE.Helpers;
+using BE.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace BE.Services
@@ -6,10 +8,12 @@ namespace BE.Services
     public class ProductService
     {
         private readonly ApplicationDbContext _context;
+        private readonly FirebaseStorageHelper _firebaseStorageHelper;
 
-        public ProductService(ApplicationDbContext context)
+        public ProductService(ApplicationDbContext context, FirebaseStorageHelper firebaseStorageHelper)
         {
             _context = context;
+            _firebaseStorageHelper = firebaseStorageHelper;
         }
 
         public async Task<List<Product>> GetAllProductsAsync()
@@ -163,6 +167,26 @@ namespace BE.Services
             _context.Products.Remove(product);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        //Function handle bussiness
+        public async Task UpdateThumbnailAsync(Product existingProduct, IFormFile? newThumbnail)
+        {
+            if (newThumbnail != null)
+            {
+                var newThumbnailUrl = await _firebaseStorageHelper.UploadImageAsync(newThumbnail, "products/thumbnails");
+                existingProduct.Thumbnail = newThumbnailUrl;
+            }
+        }
+
+        public void UpdateProductDetails(Product existingProduct, UpdateProductDTO productDto)
+        {
+            if (!string.IsNullOrEmpty(productDto.Name)) existingProduct.Name = productDto.Name;
+            if (!string.IsNullOrEmpty(productDto.Slug)) existingProduct.Slug = productDto.Slug;
+            if (!string.IsNullOrEmpty(productDto.Description)) existingProduct.Description = productDto.Description;
+            if (productDto.CategoryId.HasValue) existingProduct.CategoryId = productDto.CategoryId.Value;
+
+            existingProduct.UpdatedAt = DateTime.Now;
         }
     }
 }
