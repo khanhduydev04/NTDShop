@@ -27,7 +27,7 @@ export const Button = ({
             break;
 
         case "text":
-            bgClassName = "text-primary1";
+            bgClassName = "text-primary";
             break;
 
         case "delete":
