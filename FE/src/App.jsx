@@ -8,6 +8,7 @@ import ProductDetailPage from "./pages/Client/Products/productDetail";
 import { CartPage } from "./pages/Client/Cart";
 import { OderForm } from "./pages/Client/Cart/oderForm";
 import OrderConfirmation from "./pages/Client/Cart/OrderConfirmation ";
+import { Profile } from "./pages/Client/Profile";
 
 const routes = createBrowserRouter([
   //auth routes
@@ -47,7 +48,12 @@ const routes = createBrowserRouter([
       {
         path: "xac-nhan-dat-hang",
         element: <OrderConfirmation />,
+      },
+      {
+        path: "thong-tin-ca-nhan",
+        element: <Profile />,
       }
+
     ]
   },
   
