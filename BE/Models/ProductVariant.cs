@@ -7,13 +7,15 @@ namespace BE.Models
         public int Id { get; set; }
 
         [StringLength(50, ErrorMessage = "Màu sắc không được vượt quá 50 ký tự.")]
-        public string? Color { get; set; } // Không bắt buộc
-
-        public string? Storage { get; set; } // Không bắt buộc
+        public string? Color { get; set; }
+        public string? Storage { get; set; }
 
         [Required(ErrorMessage = "Giá là bắt buộc.")]
         [Range(1, double.MaxValue, ErrorMessage = "Giá phải lớn hơn 0.")]
         public decimal Price { get; set; }
+
+        [Range(1, double.MaxValue, ErrorMessage = "Giá phải lớn hơn 0.")]
+        public decimal PriceSale { get; set; } = decimal.Zero;
 
         [Range(0, int.MaxValue, ErrorMessage = "Số lượng không hợp lệ.")]
         public int Stock { get; set; }

@@ -344,11 +344,5 @@ namespace BE.Controllers
 
 			return new JwtSecurityTokenHandler().WriteToken(token);
 		}
-
-
 	}
-
-
-
-
 }

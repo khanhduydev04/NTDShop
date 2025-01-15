@@ -153,6 +153,7 @@ namespace BE.Controllers
                     Stock = variant.Stock,
                     Storage = variant.Storage ?? null,
                     Price = variant.Price,
+                    PriceSale = variant.PriceSale,
                 }).ToList();
 
                 var productSpecificationsEntities = productSpecifications.Select(spec => new ProductSpecification
@@ -289,6 +290,7 @@ namespace BE.Controllers
                                 existingVariant.Price = updatedVariant.Price;
                                 existingVariant.Stock = updatedVariant.Stock;
                                 existingVariant.Storage = updatedVariant.Storage;
+                                existingVariant.PriceSale = updatedVariant.PriceSale;
                                 existingVariant.IsDeleted = updatedVariant.IsDeleted;
                                 _context.Entry(existingVariant).State = EntityState.Modified;
                             }

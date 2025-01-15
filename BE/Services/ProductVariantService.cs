@@ -43,7 +43,9 @@ namespace BE.Services
             variant.Color = updatedVariant.Color;
             variant.Storage = updatedVariant.Storage;
             variant.Price = updatedVariant.Price;
+            variant.PriceSale = updatedVariant.PriceSale;
             variant.Stock = updatedVariant.Stock;
+            variant.IsDeleted = updatedVariant.IsDeleted;
 
             await _context.SaveChangesAsync();
             return true;

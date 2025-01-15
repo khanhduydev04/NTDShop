@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using BE.Models;
+using BE.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using BE.Models;
-using BE.DTOs;
 
 namespace BE.Controllers
 {
@@ -14,145 +8,156 @@ namespace BE.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly OrderService _orderService;
 
-        public OrdersController(ApplicationDbContext context)
+        public OrdersController(OrderService orderService)
         {
-            _context = context;
+            _orderService = orderService;
         }
 
-        // GET: api/Orders
+        // Lấy tất cả đơn hàng
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        public async Task<IActionResult> GetAllOrders()
         {
-            return await _context.Orders
-                .Include(o => o.Manager)
-                .Include(o => o.Manager) //lay nguoi quan ly don hang
-                .Include(o => o.OrderDetails) // lay chi tiet don hang
-                .ToListAsync();
+            try
+            {
+                var orders = await _orderService.GetAllOrdersAsync();
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách đơn hàng.", error = ex.Message });
+            }
         }
 
-        // GET: api/Orders/5
+        // Lấy đơn hàng theo ID
         [HttpGet("{id}")]
-        public async Task<ActionResult<Order>> GetOrder(int id)
+        public async Task<IActionResult> GetOrderById(int id)
         {
-            var order = await _context.Orders
-                    .Where(o => o.Id == id)
-                    .Include(o => o.Customer)
-                    .Include(o => o.OrderDetails) // lay danh sach chi tiet order trong order
-                        .ThenInclude(op => op.Product) // lay thong tin cua product trong danh sach chi tiet
-                            .ThenInclude(opc => opc.Category) // lay ten category trong product
-                    .FirstOrDefaultAsync();
-
-            if (order == null)
+            try
             {
-                return NotFound();
+                var order = await _orderService.GetOrderByIdAsync(id);
+                if (order == null)
+                {
+                    return NotFound($"Không tìm thấy đơn hàng với ID {id}");
+                }
+                return Ok(order);
             }
-
-            return order;
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy thông tin đơn hàng.", error = ex.Message });
+            }
         }
 
-        // PUT: api/Orders/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutOrder(int id, Order order)
+        // Lấy các đơn hàng theo CustomerId
+        [HttpGet("customer/{customerId}")]
+        public async Task<IActionResult> GetOrdersByCustomerId(string customerId)
         {
-            if (id != order.Id)
+            try
             {
-                return BadRequest();
+                var orders = await _orderService.GetOrdersByCustomerIdAsync(customerId);
+                if (orders == null || !orders.Any())
+                {
+                    return NotFound($"Không tìm thấy đơn hàng nào của khách hàng ID {customerId}");
+                }
+                return Ok(orders);
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách đơn hàng của khách hàng.", error = ex.Message });
+            }
+        }
 
-            _context.Entry(order).State = EntityState.Modified;
+        // Tạo mới đơn hàng
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder([FromBody] Order order)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             try
             {
-                await _context.SaveChangesAsync();
+                // Tạo mới đơn hàng
+                var createdOrder = await _orderService.CreateOrderAsync(order);
+
+                if (order.PaymentMethod == "Online")
+                {
+                    // Nếu là thanh toán online, trả về thông tin tạo URL thanh toán
+                    return Ok(new
+                    {
+                        Message = "Đơn hàng đã được tạo. Vui lòng tiến hành thanh toán.",
+                        OrderId = createdOrder!.Id
+                    });
+                }
+
+                return CreatedAtAction(nameof(GetOrderById), new { id = createdOrder!.Id }, createdOrder);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!OrderExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi tạo mới đơn hàng.", error = ex.Message });
+            }
+        }
+
+        [HttpPut("{orderId}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] dynamic requestBody)
+        {
+            string paymentStatus = requestBody.PaymentStatus;
+            string status = requestBody.Status;
+
+            var success = await _orderService.UpdateOrderStatusAsync(orderId, paymentStatus, status);
+            if (!success)
+            {
+                return NotFound(new { Message = "Không tìm thấy đơn hàng." });
             }
 
-            return NoContent();
+            return Ok(new { Message = "Cập nhật trạng thái đơn hàng thành công." });
         }
 
-        // POST: api/Orders
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Order>> PostOrder(Order order)
+        // Cập nhật đơn hàng
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order updatedOrder)
         {
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return CreatedAtAction("GetOrder", new { id = order.Id }, order);
+            try
+            {
+                var success = await _orderService.UpdateOrderAsync(id, updatedOrder);
+                if (!success)
+                {
+                    return NotFound($"Không tìm thấy đơn hàng với ID {id}");
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi cập nhật đơn hàng.", error = ex.Message });
+            }
         }
 
-        // DELETE: api/Orders/5
+        // Xóa đơn hàng
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null)
+            try
             {
-                return NotFound(new { message = "Đơn hàng không tồn tại." });
-            }
+                var success = await _orderService.DeleteOrderAsync(id);
+                if (!success)
+                {
+                    return NotFound($"Không tìm thấy đơn hàng với ID {id}");
+                }
 
-            //xoa chi tiet don hang
-            if (order.OrderDetails != null && order.OrderDetails.Any())
+                return NoContent();
+            }
+            catch (Exception ex)
             {
-                _context.OrderDetails.RemoveRange(order.OrderDetails);
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi xóa đơn hàng.", error = ex.Message });
             }
-
-            //xoa hoa ddonw
-            _context.Orders.Remove(order);
-            await _context.SaveChangesAsync(); //luu
-
-            return Ok(new { message = "Hóa đơn và các chi tiết liên quan đã được xóa thành công." });
         }
-
-        private bool OrderExists(int id)
-        {
-            return _context.Orders.Any(e => e.Id == id);
-        }
-
-        //cap nhat trang thai
-        [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusOrder updateStatusOrder)
-        {
-			// Kiểm tra nếu có lỗi khi áp dụng thay đổi
-			if (!ModelState.IsValid)
-			{
-				return BadRequest(ModelState);
-			}
-
-			// Tìm đơn hàng cần cập nhật
-			var order = await _context.Orders.FindAsync(id);
-			if (order == null)
-			{
-				return NotFound(new { message = "Đơn hàng không tồn tại." });
-			}
-
-            order.Status = updateStatusOrder.Status;
-
-			// Lưu thay đổi
-			_context.Entry(order).State = EntityState.Modified;
-			await _context.SaveChangesAsync();
-
-			return Ok(new { message = "Cập nhật trạng thái thành công.", order });
-		}
-
-		//dat hang
-        /////
-        /// nhap vao mot gio hang gom cac chi tiet trong gio hang
-        /// tao don hang
-        /// them chi tiet don hang dua vao chi tiet gio hang
-        ////
-		}
+    }
 }
