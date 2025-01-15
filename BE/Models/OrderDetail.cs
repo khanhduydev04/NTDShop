@@ -3,25 +3,33 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BE.Models
 {
-	public class OrderDetail
-	{
-		public int Id { get; set; }
+    public class OrderDetail
+    {
+        public int Id { get; set; }
 
-		[Required(ErrorMessage = "Số lượng sản phẩm là bắt buộc.")]
-		[Range(0, Int64.MaxValue, ErrorMessage = "Số lượng sản phẩm không được nhỏ hơn 0.")]
-		public int Quantity { get; set; }
+        [ForeignKey(nameof(Order.Id))]
+        [Required]
+        public int OrderId { get; set; }
+        public Order? Order { get; set; }
 
-		[Required(ErrorMessage = "Gía sản phẩm là bắt buộc.")]
-		[Range(0, double.MaxValue, ErrorMessage = "Giá sản phẩm không được nhỏ hơn 0.")]
-		public double PriceSale { get; set; }
+        [ForeignKey(nameof(ProductVariant.Id))]
+        [Required]
+        public int ProductVariantId { get; set; }
+        public ProductVariant? ProductVariant { get; set; }
 
-		[ForeignKey(nameof(Product.Id))] // khoa ngoai lien ket voi bang product
-		public int? ProductId { get; set; }
-		public Product? Product { get; set; } // 1 orderdetail chi co 1 product
+        [Required(ErrorMessage = "Số lượng là bắt buộc.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Số lượng phải lớn hơn 0.")]
+        public int Quantity { get; set; }
 
-		[ForeignKey(nameof(Order.Id))] // khoa ngoai lien ket voi bang Order
-		public int? OrderId { get; set; }
-		public Order? Order { get; set; } //1 detail chi thuoc 1 order
+        [Required(ErrorMessage = "Giá là bắt buộc.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Giá phải lớn hơn hoặc bằng 0.")]
+        public decimal Price { get; set; }
 
-	}
+        public decimal Total => Price * Quantity;
+
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
+    }
 }

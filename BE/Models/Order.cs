@@ -9,7 +9,6 @@ namespace BE.Models
 	{
 		public int Id { get; set; }
 
-
 		[DataType(DataType.Date)]
 		[Required(ErrorMessage = "Ngày đặt hàng không được để trống")]
 		public DateOnly DateOrder { get; set; }
@@ -20,24 +19,24 @@ namespace BE.Models
 
 		[Required(ErrorMessage = "Chi phí vận chuyển là bắt buộc.")]
 		[Range(0, double.MaxValue, ErrorMessage = "Chi phí vận chuyển không được nhỏ hơn 0.")]
-		public double DeliveryCost { get; set; }
+		public double DeliveryCost { get; set; } = 0;
 
-		[Required(ErrorMessage = "Trạng thái không được để trống.")]
+        [Required(ErrorMessage = "Trạng thái thanh toán không được để trống.")]
+        [DefaultValue("Chưa thanh toán")]
+        [RegularExpression(@"^(Chưa thanh toán|Đã thanh toán|Đang chờ xác nhận)$", ErrorMessage = "Chỉ nhận các giá trị Chưa thanh toán, Đã thanh toán, Đang chờ xác nhận.")]
+        public string PaymentStatus { get; set; } = "Chưa thanh toán";
+
+        [Required(ErrorMessage = "Trạng thái không được để trống.")]
 		[DefaultValue("Đã đặt hàng")]
-		[RegularExpression(@"^(Đã đặt hàng|Đang vận chuyển|Đã thanh toán|Đã hủy)$", ErrorMessage = "Chỉ nhận các giá trị Đã đặt hàng, Đang vận chuyển, Đã thanh toán, Đã hủy.")]
+		[RegularExpression(@"^(Đã đặt hàng|Đang vận chuyển|Đã giao hàng|Đã hủy)$", ErrorMessage = "Chỉ nhận các giá trị Đã đặt hàng, Đang vận chuyển, Đã thanh toán, Đã hủy.")]
 		public required string Status { get; set; }
-
 		public string? Note { get; set; }
-
 		public Boolean IsActive { get; set; } = true;
 
 		[Required(ErrorMessage = "Địa chỉ giao hàng không được để trống.")]
 		public required string Address { get; set; }
 
 		public string PaymentMethod { get; set; } = "COD";
-
-		public DateTime Create_at { get; set; } = DateTime.UtcNow;
-		public DateTime? Update_at { get; set; }
 
 		[ForeignKey(nameof(User.Id))] // khoa ngoai lien ket voi bang User
 		public string? ManagerId { get; set; }
@@ -46,7 +45,9 @@ namespace BE.Models
 		[ForeignKey(nameof(User.Id))] // khoa ngoai lien ket voi bang User
 		public string? CustomerId { get; set; }
 		public User? Customer { get; set; } // order chi co 1 khach hang
+        public DateTime Create_at { get; set; } = DateTime.UtcNow;
+        public DateTime? Update_at { get; set; }
 
-		public List<OrderDetail>? OrderDetails { get; set; } // mot order co nhieu ordeDetail
-	}
+        public ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+    }
 }

@@ -50,7 +50,15 @@ namespace BE.Models
             // Định nghĩa độ chính xác cho giá trị Price
             modelBuilder.Entity<ProductVariant>()
                .Property(pv => pv.Price)
-               .HasPrecision(18, 2); 
-                }
+               .HasPrecision(18, 2);
+
+            modelBuilder.Entity<ProductVariant>()
+               .Property(pv => pv.PriceSale)
+               .HasPrecision(18, 2);
+
+            modelBuilder.Entity<OrderDetail>()
+               .Property(pv => pv.Price)
+               .HasPrecision(18, 2);
+        }
     }
 }
