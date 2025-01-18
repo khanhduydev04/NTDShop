@@ -16,9 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var configuration = builder.Configuration;
 
-// Cấu hình DbContext với SQL Server
-services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+//// Cấu hình DbContext với SQL Server
+//services.AddDbContext<ApplicationDbContext>(options =>
+//    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+// Thêm DbContext và cấu hình SQLite
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+	options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Cấu hình Controllers
 services.AddControllers()

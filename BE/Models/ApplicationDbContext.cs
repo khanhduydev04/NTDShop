@@ -61,6 +61,18 @@ namespace BE.Models
             modelBuilder.Entity<OrderDetail>()
                .Property(pv => pv.Price)
                .HasPrecision(18, 2);
-        }
+
+			// Đảm bảo kiểu dữ liệu tương thích với SQLite
+			foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+			{
+				foreach (var property in entityType.GetProperties())
+				{
+					if (property.ClrType == typeof(string) && property.GetMaxLength() == null)
+					{
+						property.SetMaxLength(256); // Đặt độ dài tối đa cho string
+					}
+				}
+			}
+		}
     }
 }
