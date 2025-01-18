@@ -37,6 +37,7 @@ services.AddScoped<NeedService>();
 services.AddScoped<ProductNeedService>();
 services.AddScoped<IVnPayService, VnPayService>();
 services.AddScoped<OrderService>();
+services.AddScoped<AddressService>();
 
 // Đăng ký FirebaseStorageHelper
 services.AddSingleton<FirebaseStorageHelper>();
