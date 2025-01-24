@@ -8,6 +8,7 @@ import {
 import ProductSkeleton from "@/components/Client/Loading/ProductSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import Countdown from "@/components/common/Countdown/Countdown,";
+import Banner from "@/components/Client/Banner";
 
 const discountData = [
   {
@@ -200,6 +201,7 @@ const HomePage = () => {
 
   return (
     <>
+      <Banner />
       <div className="w-full bg-[url('/images/background_flashsale.jpg')] bg-center bg-cover mb-16">
         <div className="container py-10">
           <div className="flex justify-between mb-3">

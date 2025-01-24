@@ -2,7 +2,7 @@ import axiosInstance from "@/configs/api";
 
 export const getCategories = async () => {
   try {
-    const response = await axiosInstance.get("/categories");
+    const response = await axiosInstance.get("/categories/active");
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi API:", error);

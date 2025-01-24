@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { Header } from "../components/client/header";
 import { Footer } from "../components/Client/footer";
 import BottomMenu from "@/components/Client/BottomMenu";
@@ -7,7 +7,7 @@ export const MainLayout = () => {
   return (
     <div className="relative min-h-screen">
       <Header />
-      <main className="text-black bg-white pt-[100px]">
+      <main className="text-black bg-white pt-[110px]">
         <Outlet />
       </main>
       <Footer />

@@ -4,6 +4,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import useDebounce from "@/hooks/useDebounce";
 import { searchProducts } from "@/services/product";
+import { AlignJustify } from "lucide-react";
+import { getCategories } from "@/services/category";
 
 export const Header = () => {
   const [keyword, setKeyword] = useState("");
@@ -11,6 +13,15 @@ export const Header = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const debouncedKeyword = useDebounce(keyword, 500); // Delay 500ms
   const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const result = await getCategories();
+      setCategories(result || []);
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -47,11 +58,37 @@ export const Header = () => {
           </Link>
         </div>
 
+        <div className="group relative">
+          <button
+            className="bg-white/10 group-hover:bg-[#3FB4F5] px-4 py-2.5 rounded-full flex items-center gap-2 leading-5"
+            aria-label="Danh mục"
+          >
+            <AlignJustify strokeWidth={1.5} className="size-5" />
+            <span>Danh mục</span>
+          </button>
+
+          {/* Menu danh mục */}
+          <div className="absolute top-[110%] left-0 bg-white shadow-md rounded-md w-64 transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible">
+            <ul className="py-2">
+              {categories.map((category, index) => (
+                <li key={index} className="hover:bg-gray-100 text-textBlack">
+                  <Link
+                    to={`/san-pham?danh-muc=${category.slug}`}
+                    className="block px-4 py-2"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
         {/* Search */}
         <div className="menu_search hidden lg:flex items-center relative">
           <form
-            className="flex"
-            onSubmit={handleSearchSubmit} // Xử lý sự kiện submit
+            className="flex relative w-40 md:w-80 rounded-full overflow-hidden bg-white"
+            onSubmit={handleSearchSubmit}
           >
             <input
               type="text"
@@ -63,11 +100,11 @@ export const Header = () => {
                 setIsDialogOpen(true); // Mở dialog khi nhập liệu
               }}
               placeholder="Nhập tên sản phẩm cần tìm ..."
-              className="border p-2 rounded-l-md w-40 md:w-80 focus:outline-none text-textBlack"
+              className="px-3 py-2 flex-1 focus:outline-none text-textBlack"
             />
             <button
               type="submit" // Chuyển sang trang khi nhấn nút
-              className="bg-blue-500 text-white p-2 rounded-r-md"
+              className="text-textPrimary p-2 pr-3"
             >
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </button>
@@ -82,7 +119,6 @@ export const Header = () => {
                     key={product.id}
                     className="p-2 hover:bg-gray-200 cursor-pointer"
                     onClick={() => {
-                      // navigate(`/san-pham/${product.slug}`);
                       setIsDialogOpen(false); // Đóng dialog
                     }}
                   >
@@ -133,13 +169,13 @@ export const Header = () => {
         </div>
 
         {/* Cart */}
-        <div className="menu_cart hidden lg:flex items-center">
+        <div className="menu_cart hidden lg:flex items-center bg-[#3FB4F5] px-4 py-2.5 rounded-full">
           <Link to="#" title="Giỏ hàng" className="flex items-center">
             <img
               src="https://ttcenter.com.vn/images/cart.svg"
               alt="Giỏ hàng"
               title="Giỏ hàng"
-              className="w-6 h-6 mr-2"
+              className="size-5 mr-2"
             />
             <span>
               Giỏ hàng <strong className="number_cart">0</strong>
@@ -148,7 +184,7 @@ export const Header = () => {
         </div>
 
         {/* Account */}
-        <div className="menu_account hidden lg:flex items-center">
+        <div className="menu_account hidden lg:flex items-center bg-white/10 px-4 py-2.5 rounded-full">
           <Link to="/dang-nhap" title="Đăng nhập" className="flex items-center">
             <img
               src="https://ttcenter.com.vn/images/user.svg"
