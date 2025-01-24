@@ -3,17 +3,11 @@ import { Navigation, Thumbs } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/thumbs";
-import React, { useState } from "react";
+import { useState } from "react";
+import PropTypes from "prop-types";
 
-export const SliderProduct = () => {
+export const SliderProduct = ({ images }) => {
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
-
-  const images = [
-    "https://nupet.vn/wp-content/uploads/2023/10/hinh-nen-ngo-nghinh-anh-meo-cute-nupet-new-5.jpg",
-    "https://nupet.vn/wp-content/uploads/2023/10/hinh-nen-ngo-nghinh-anh-meo-cute-nupet-3-new.jpg",
-    "https://nupet.vn/wp-content/uploads/2023/10/hinh-nen-ngo-nghinh-anh-meo-cute-nupet-new-5.jpg",
-    "https://nupet.vn/wp-content/uploads/2023/10/hinh-nen-ngo-nghinh-anh-meo-cute-nupet-new-6.jpg",
-  ];
 
   return (
     <div>
@@ -57,4 +51,8 @@ export const SliderProduct = () => {
       </Swiper>
     </div>
   );
+};
+
+SliderProduct.propTypes = {
+  images: PropTypes.array.isRequired,
 };

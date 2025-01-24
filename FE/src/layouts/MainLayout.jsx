@@ -1,17 +1,17 @@
 import { Outlet } from "react-router-dom";
 import { Header } from "../components/client/header";
-import { Footer } from "../components/Client/footer"; 
+import { Footer } from "../components/Client/footer";
+import BottomMenu from "@/components/Client/BottomMenu";
 
 export const MainLayout = () => {
-    return (
-        <div>
-            <Header />
-            <main className="flex-1 bg-[#F8F9FD] text-black">
-                <div className="w-full max-w-[1200px] mx-auto py-4 px-4 lg:px-0">
-                    <Outlet />
-                </div>
-            </main>
-            <Footer />
-        </div>
-    );
+  return (
+    <div className="relative min-h-screen">
+      <Header />
+      <main className="text-black bg-white pt-[100px]">
+        <Outlet />
+      </main>
+      <Footer />
+      <BottomMenu></BottomMenu>
+    </div>
+  );
 };

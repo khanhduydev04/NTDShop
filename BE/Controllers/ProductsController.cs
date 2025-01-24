@@ -48,22 +48,51 @@ namespace BE.Controllers
         }
 
         // Lấy tất cả sản phẩm còn đang bán
-        [HttpGet("active")]
-        public async Task<IActionResult> GetActiveProducts()
-        {
-            var activeProducts = await _productService.GetActiveProductsAsync();
-            return Ok(activeProducts);
-        }
+        //[HttpGet("active")]
+        //public async Task<IActionResult> GetActiveProducts()
+        //{
+        //    var activeProducts = await _productService.GetActiveProductsAsync();
+        //    return Ok(activeProducts);
+        //}
 
-        [HttpGet("needs")]
-        public async Task<IActionResult> GetProductsByNeeds([FromQuery] List<int> needIds)
+        [HttpGet("active")]
+        public async Task<IActionResult> GetActiveProducts(
+            [FromQuery] int? needId = null,
+            [FromQuery] string? pricingValue = null,
+            [FromQuery] string? sortOrder = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? name = null,
+            [FromQuery] int limit = 25,
+            [FromQuery] int offset = 0)
         {
-            if (needIds == null || !needIds.Any())
+            // Chuyển đổi pricingValue từ string? sang int?
+            int? pricingValueInt = null;
+            if (!string.IsNullOrEmpty(pricingValue) && int.TryParse(pricingValue, out int parsedValue))
             {
-                return BadRequest(new { message = "Danh sách nhu cầu không được để trống." });
+                pricingValueInt = parsedValue;
             }
 
-            var products = await _productService.GetProductsByNeedsAsync(needIds);
+            // Gọi hàm service với các tham số lọc và phân trang
+            var result = await _productService.GetActiveProductsAsync(needId, pricingValueInt, sortOrder, category, name, limit, offset);
+
+            // Trả về kết quả với dữ liệu và metadata
+            return Ok(new
+            {
+                data = result.Products,
+                total_data = result.TotalData,
+                remaining_data = result.RemainingData
+            });
+        }
+
+        // Lấy sản phẩm giảm giá
+        [HttpGet("sales")]
+        public async Task<IActionResult> GetTopDiscountedProducts()
+        {
+            var products = await _productService.GetTopDiscountedProductsAsync();
+            if (products == null)
+            {
+                return NotFound();
+            }
             return Ok(products);
         }
 
@@ -76,13 +105,6 @@ namespace BE.Controllers
             }
 
             var products = await _productService.SearchProductsByNameAsync(keyword);
-            return Ok(products);
-        }
-
-        [HttpGet("category/{categorySlug}")]
-        public async Task<IActionResult> GetProductsByCategory(string categorySlug)
-        {
-            var products = await _productService.GetProductsByCategorySlugAsync(categorySlug);
             return Ok(products);
         }
 

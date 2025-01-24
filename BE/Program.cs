@@ -20,6 +20,18 @@ var configuration = builder.Configuration;
 services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+// Thêm chính sách CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173") // Thay bằng URL React của bạn
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
 // Cấu hình Controllers
 services.AddControllers()
     .AddNewtonsoftJson(options =>
@@ -126,6 +138,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Sử dụng chính sách CORS
+app.UseCors("AllowSpecificOrigin");
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
