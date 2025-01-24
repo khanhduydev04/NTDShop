@@ -19,6 +19,8 @@ namespace BE.Models
         public DbSet<ProductNeed> ProductNeeds { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
+        public DbSet<Address> Address { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
