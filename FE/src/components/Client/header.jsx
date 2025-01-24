@@ -1,317 +1,164 @@
-import { Link } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '../../components/ui/navigation-menu'; // Điều chỉnh đường dẫn import
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import useDebounce from "@/hooks/useDebounce";
+import { searchProducts } from "@/services/product";
 
 export const Header = () => {
+  const [keyword, setKeyword] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const debouncedKeyword = useDebounce(keyword, 500); // Delay 500ms
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (debouncedKeyword) {
+        const result = await searchProducts({ keyword: debouncedKeyword });
+        setSuggestions(result || []);
+      } else {
+        setSuggestions([]);
+      }
+    };
+    fetchSuggestions();
+  }, [debouncedKeyword]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault(); // Ngăn chặn hành vi mặc định của form
+    if (keyword.trim()) {
+      navigate(`/san-pham?ten=${encodeURIComponent(keyword)}`);
+      setIsDialogOpen(false); // Đóng dialog
+    }
+  };
+
   return (
-    <header className="bg-primary shadow-lg">
+    <header className="bg-primary shadow-lg lg:fixed top-0 w-full z-50">
       <div className="container mx-auto flex items-center justify-between py-6">
         {/* Logo */}
         <div className="logo">
-          <Link to="#" title="T&T Center">
-            <img src="https://ttcenter.com.vn/images/logo.svg" alt="T&T Center" title="T&T Center" className="w-32 md:w-48" />
+          <Link to="/" title="T&T Center">
+            <img
+              src="https://ttcenter.com.vn/images/logo.svg"
+              alt="T&T Center"
+              title="T&T Center"
+              className="w-32 md:w-48"
+            />
           </Link>
         </div>
-         
+
         {/* Search */}
-        <div className="menu_search flex items-center">
-          <form className="flex">
+        <div className="menu_search hidden lg:flex items-center relative">
+          <form
+            className="flex"
+            onSubmit={handleSearchSubmit} // Xử lý sự kiện submit
+          >
             <input
               type="text"
               name="ten"
-              onKeyUp={() => {}}
               id="search_product"
-              value=""
+              value={keyword}
+              onChange={(e) => {
+                setKeyword(e.target.value);
+                setIsDialogOpen(true); // Mở dialog khi nhập liệu
+              }}
               placeholder="Nhập tên sản phẩm cần tìm ..."
-              className="border p-2 rounded-l-md w-40 md:w-80"
+              className="border p-2 rounded-l-md w-40 md:w-80 focus:outline-none text-textBlack"
             />
-            <button type="submit" className="bg-blue-500 text-white p-2 rounded-r-md">
+            <button
+              type="submit" // Chuyển sang trang khi nhấn nút
+              className="bg-blue-500 text-white p-2 rounded-r-md"
+            >
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </button>
           </form>
+
+          {/* Dialog */}
+          {isDialogOpen && suggestions.length > 0 && (
+            <div className="absolute top-[110%] left-0 w-full bg-white border rounded-md shadow-lg z-10 overflow-hidden">
+              <ul>
+                {suggestions.map((product) => (
+                  <li
+                    key={product.id}
+                    className="p-2 hover:bg-gray-200 cursor-pointer"
+                    onClick={() => {
+                      // navigate(`/san-pham/${product.slug}`);
+                      setIsDialogOpen(false); // Đóng dialog
+                    }}
+                  >
+                    <Link to={`/san-pham/${product.slug}`} className="block">
+                      <div className="flex items-center">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-10 h-10 mr-4"
+                        />
+                        <div>
+                          <p className="font-medium text-textBlack">
+                            {product.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Giá: {product.price.toLocaleString()}đ
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Hotline */}
-        <div className="menu_hotline flex items-center cursor-pointer">
-          <a href="tel:0898.143.789" title="Hotline CSKH" className="flex items-center">
-            <img src="https://ttcenter.com.vn/images/hotline.svg" alt="hotline" title="hotline" className="w-6 h-6 mr-2" />
+        <div className="menu_hotline hidden lg:flex items-center cursor-pointer">
+          <a
+            href="tel:0898.143.789"
+            title="Hotline CSKH"
+            className="flex items-center"
+          >
+            <img
+              src="https://ttcenter.com.vn/images/hotline.svg"
+              alt="hotline"
+              title="hotline"
+              className="w-6 h-6 mr-2"
+            />
             <div>
               <p className="text-sm">Hotline CSKH</p>
-              <p><strong>0898.143.789</strong></p>
+              <p>
+                <strong>0898.143.789</strong>
+              </p>
             </div>
           </a>
         </div>
 
         {/* Cart */}
-        <div className="menu_cart flex items-center">
+        <div className="menu_cart hidden lg:flex items-center">
           <Link to="#" title="Giỏ hàng" className="flex items-center">
-            <img src="https://ttcenter.com.vn/images/cart.svg" alt="Giỏ hàng" title="Giỏ hàng" className="w-6 h-6 mr-2" />
-            <span>Giỏ hàng <strong className="number_cart">0</strong></span>
+            <img
+              src="https://ttcenter.com.vn/images/cart.svg"
+              alt="Giỏ hàng"
+              title="Giỏ hàng"
+              className="w-6 h-6 mr-2"
+            />
+            <span>
+              Giỏ hàng <strong className="number_cart">0</strong>
+            </span>
           </Link>
         </div>
 
         {/* Account */}
-        <div className="menu_account flex items-center">
+        <div className="menu_account hidden lg:flex items-center">
           <Link to="/dang-nhap" title="Đăng nhập" className="flex items-center">
-            <img src="https://ttcenter.com.vn/images/user.svg" alt="user" title="user" className="w-6 h-6 mr-2" />
+            <img
+              src="https://ttcenter.com.vn/images/user.svg"
+              alt="user"
+              title="user"
+              className="w-6 h-6 mr-2"
+            />
             <span>Đăng nhập</span>
           </Link>
         </div>
-      </div>
-      
-      <div className="w-full bg-white">
-        <nav className="mx-auto flex items-center justify-between py-2">
-          <ul className="w-full flex justify-center gap-4 items-center">
-          <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-              <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                      <img className="w-[40px] object-contain" src="https://cdnv2.tgdd.vn/mwg-static/common/Category/c9/ea/c9eac61be9530e9c6c4404ba573086c4.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-            <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-              <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                        <img className="w-[40px] object-contain" src="https://cdnv2.tgdd.vn/mwg-static/common/Category/0b/90/0b907e4551b7ad8857426905ae627cad.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-            <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-                <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                        <img className="w-[40px] object-contain" src="https://cdnv2.tgdd.vn/mwg-static/common/Category/f9/bf/f9bf13ff9843115d6edacf7ba01af389.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-            <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-              <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                        <img className="w-[40px] object-contain" src="https://cdnv2.tgdd.vn/mwg-static/common/Category/6d/8d/6d8d72c5a0a115eff8005f41df8dbe27.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-            <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-              <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                        <img className="w-[40px] object-contain" src="https://ttcenter.com.vn/uploads/product_menu/gigabyte-1688183166.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-            <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-              <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                        <img className="w-[40px] object-contain" src="https://cdnv2.tgdd.vn/mwg-static/common/Category/6a/6f/6a6f7e4792cdbc7946e58e539d1f05f1.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-            <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-              <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                        <img className="w-[40px] object-contain" src="https://cdnv2.tgdd.vn/mwg-static/common/Category/44/af/44af0b82dd48675388be5cf873c49393.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-            <li className="w-20 h-8 py-2 px-4 flex justify-center items-center bg-gray-200 rounded-lg">
-              <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="w-[90px] h-8 items-center bg-gray-200 text-black rounded-lg">              
-                        <img className="w-[40px] object-contain" src="https://ttcenter.com.vn/uploads/product_menu/gigabyte-1688183166.png" alt="" />
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink>
-                        <div className="bg-white p-4">
-                            <h3 className='mb-3 font-bold text-primary'>Loại máy</h3>
-                            <div className=" flex justify-center items-center gap-2 ">
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                              <ul className="col-span-1 flex flex-col gap-2 w-[220px]">
-                                <li><Link to="">Laptop Dell V02a9 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V02s8 gamming</Link></li>
-                                <li><Link to="">Laptop Dell V09x8 gamming</Link></li>
-                              </ul>
-                            </div>
-                        </div>
-                        </NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-            </li>
-          </ul>
-        </nav>
       </div>
     </header>
   );
