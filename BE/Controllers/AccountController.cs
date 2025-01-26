@@ -189,10 +189,8 @@ namespace BE.Controllers
 					if (result.Succeeded)
 					{
 						// Lấy danh sách roles
-						var roles = await _userManager.GetRolesAsync(user);
-
-						var token = GenerateJwtTokenAsync(user);
-
+						//var roles = await _userManager.GetRolesAsync(user);
+						var token = await GenerateJwtTokenAsync(user);
 						return Ok(new { Token = token });
 					}
 				}
@@ -212,7 +210,7 @@ namespace BE.Controllers
 				return BadRequest(ModelState);
 
 			// Tìm người dùng theo ID
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); //id của user
+			var userId = User.FindFirstValue("id"); //id của user
 
 			var user = await _userManager.FindByIdAsync(userId);
 			if (user == null)
@@ -227,9 +225,6 @@ namespace BE.Controllers
 			return Ok(new { message = "Mật khẩu đã thay đổi" });
 		}
 
-		//quen mat khau
-		//dat lai mat khau
-
 		//cap nhat thong tin 
 		[Authorize]
 		[HttpPut("change-profile")]
@@ -238,15 +233,32 @@ namespace BE.Controllers
 			if (!ModelState.IsValid)
 				return BadRequest(ModelState);
 			// Tìm người dùng theo ID
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); //id của user
+			var userId = User.FindFirstValue("id"); //id của user
 
 			// Tìm người dùng theo ID
 			var user = await _userManager.FindByIdAsync(userId);
 			if (user == null)
 				return NotFound("không tìm thấy.");
 
-			// Cập nhật thông tin người dùng			
-			user.FullName = updateUserDto.FullName ?? user.FullName;
+            // Kiểm tra nếu username mới được cung cấp và khác với username hiện tại
+            if (!string.IsNullOrEmpty(updateUserDto.Username) && updateUserDto.Username != user.UserName)
+            {
+                // Kiểm tra username có bị trùng lặp không
+                if (await _userManager.Users.AnyAsync(u => u.UserName == updateUserDto.Username))
+                {
+                    return Conflict(new { message = "Tên tài khoản đã tồn tại." });
+                }
+
+                // Cập nhật username
+                var setUsernameResult = await _userManager.SetUserNameAsync(user, updateUserDto.Username);
+                if (!setUsernameResult.Succeeded)
+                {
+                    return BadRequest(setUsernameResult.Errors);
+                }
+            }
+
+            // Cập nhật thông tin người dùng			
+            user.FullName = updateUserDto.FullName ?? user.FullName;
 			user.PhoneNumber = updateUserDto.PhoneNumber ?? user.PhoneNumber;
 			user.Address = updateUserDto.Address ?? user.Address;
 			user.Gender = updateUserDto.Gender ?? user.Gender;
@@ -279,7 +291,7 @@ namespace BE.Controllers
 		public async Task<IActionResult> GetUserCurrently()
 		{
 			// Lấy UserId từ claims trong JWT Token
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+			var userId = User.FindFirstValue("id");
 
 			// Kiểm tra nếu không có UserId
 			if (string.IsNullOrEmpty(userId))
@@ -311,38 +323,35 @@ namespace BE.Controllers
 		}
 
 
-		// Tạo JWT Token
-		private async Task<string> GenerateJwtTokenAsync(User user)
-		{
-			//lay role cua user
-			var roles = await _userManager.GetRolesAsync(user);
+        // Tạo JWT Token
+        private async Task<string> GenerateJwtTokenAsync(User user)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
 
-			var claims = new List<Claim>
+            var claims = new List<Claim>
 			{
-			new Claim(JwtRegisteredClaimNames.Sub, user.Id), //lay id khong lay username
-			new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-			new Claim(ClaimTypes.NameIdentifier, user.Id),
-			new Claim(ClaimTypes.Name, user.UserName),
-						
-		};
-			// Thêm từng vai trò vào claim
-			foreach (var role in roles)
-			{
-				claims.Add(new Claim(ClaimTypes.Role, role));
-			}
+				new Claim("id", user.Id),  // ID người dùng
+				new Claim("username", user.UserName)  // Tên người dùng (username)
+			};
 
-			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
-			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim("role", role));
+            }
 
-			var token = new JwtSecurityToken(
-				issuer: _configuration["Jwt:Issuer"],
-				audience: _configuration["Jwt:Audience"],
-				claims: claims,
-				expires: DateTime.Now.AddHours(2), // thoi gian cua token la 2 giờ
-				signingCredentials: creds
-			);
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-			return new JwtSecurityTokenHandler().WriteToken(token);
-		}
-	}
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddHours(2),
+                signingCredentials: creds
+            );
+
+            // Trả về JWT token dưới dạng chuỗi
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+    }
 }

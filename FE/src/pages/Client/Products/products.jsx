@@ -118,6 +118,7 @@ const Products = () => {
   const selectedPricing = searchParams.get("muc-gia") || "";
   const selectedFilter = searchParams.get("sap-xep") || "moi-nhat";
   const selectedCategory = searchParams.get("danh-muc") || "";
+  const selectedName = searchParams.get("ten") || "";
 
   const fetchData = async (isLoadMore = false, customOffset = offset) => {
     try {
@@ -126,6 +127,7 @@ const Products = () => {
         pricingValue: selectedPricing,
         sortOrder: selectedFilter,
         category: selectedCategory,
+        name: selectedName,
         limit,
         offset: customOffset,
       };
@@ -147,7 +149,13 @@ const Products = () => {
 
   useEffect(() => {
     fetchData();
-  }, [selectedNeed, selectedPricing, selectedFilter, selectedCategory]);
+  }, [
+    selectedNeed,
+    selectedPricing,
+    selectedFilter,
+    selectedCategory,
+    selectedName,
+  ]);
 
   const handleLoadMore = () => {
     if (loading) return;
@@ -172,7 +180,7 @@ const Products = () => {
 
   return (
     <div className="py-5 container">
-      {categories.length > 0 && (
+      {categories.length > 0 && !selectedName && (
         <div className="flex flex-wrap gap-3 pb-3 mb-2.5 border-b border-textPrimary">
           {categories.map((category) => (
             <div
@@ -256,7 +264,7 @@ const Products = () => {
               <ProductSkeleton key={`skeleton-${index}`} />
             ))
           )
-        ) : (
+        ) : products.length > 0 ? (
           products.map((product) => (
             <ProductCard
               key={product.id}
@@ -268,6 +276,10 @@ const Products = () => {
               sale={product.priceSale}
             />
           ))
+        ) : (
+          <div className="col-span-5 text-center text-lg text-textPrimary font-semibold">
+            Không có sản phẩm bạn cần tìm
+          </div>
         )}
       </div>
       <div className="flex justify-center">

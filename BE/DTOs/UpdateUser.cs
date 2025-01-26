@@ -5,18 +5,17 @@ namespace BE.DTOs
 {
 	public class UpdateUser
 	{
-		[Required(ErrorMessage = "Tên không được để trống")]
 		[StringLength(100, ErrorMessage = "Tên không thể dài hơn 100 kí tự")]
 		[Display(Name = "Họ và tên")]
-		public required string FullName { get; set; }
+		public string FullName { get; set; }
 
-		[Required(ErrorMessage = "Số điện thoại không được để trống")]
 		[Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
 		[Display(Name = "Số điện thoại")]
-		public required string PhoneNumber { get; set; }
+		public string PhoneNumber { get; set; }
 
-		[Required(ErrorMessage = "Địa chỉ không được để trống.")]
-		public required string Address { get; set; }
+		public string Username { get; set; }
+
+        public string Address { get; set; }
 
 		[DefaultValue("Không xác định")]
 		[RegularExpression(@"^(Nam|Nữ|Không xác định)$", ErrorMessage = "Chỉ nhận các giá trị Nam, Nữ, Hoặc Không xác định.")]

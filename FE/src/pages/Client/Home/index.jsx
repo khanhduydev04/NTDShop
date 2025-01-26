@@ -185,7 +185,7 @@ const HomePage = () => {
 
   if (loading) {
     return (
-      <>
+      <div className="container py-5">
         <div className="flex justify-between items-center mb-4">
           <Skeleton className="h-10 w-[250px]" />
           <Skeleton className="h-10 w-[100px] rounded-full" />
@@ -195,7 +195,7 @@ const HomePage = () => {
             <ProductSkeleton key={index} />
           ))}
         </div>
-      </>
+      </div>
     );
   }
 

@@ -56,17 +56,25 @@ namespace BE.Controllers
             try
             {
                 var orders = await _orderService.GetOrdersByCustomerIdAsync(customerId);
+
+                // Trả về một mảng rỗng nếu không có đơn hàng nào
                 if (orders == null || !orders.Any())
                 {
-                    return NotFound($"Không tìm thấy đơn hàng nào của khách hàng ID {customerId}");
+                    return Ok(new List<object>()); // Trả về danh sách rỗng với status 200
                 }
+
                 return Ok(orders);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách đơn hàng của khách hàng.", error = ex.Message });
+                return StatusCode(500, new
+                {
+                    message = "Có lỗi xảy ra khi lấy danh sách đơn hàng của khách hàng.",
+                    error = ex.Message
+                });
             }
         }
+
 
         // Tạo mới đơn hàng
         [HttpPost]
@@ -100,7 +108,7 @@ namespace BE.Controllers
             }
         }
 
-        [HttpPut("{orderId}/status")]
+        [HttpPut("status/{orderId}")]
         public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] dynamic requestBody)
         {
             string paymentStatus = requestBody.PaymentStatus;

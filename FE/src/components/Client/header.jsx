@@ -1,19 +1,32 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import useDebounce from "@/hooks/useDebounce";
 import { searchProducts } from "@/services/product";
 import { AlignJustify } from "lucide-react";
 import { getCategories } from "@/services/category";
+import { getToken, removeToken, decodeToken, isTokenValid } from "@/utils/auth";
 
 export const Header = () => {
   const [keyword, setKeyword] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [username, setUsername] = useState("");
   const debouncedKeyword = useDebounce(keyword, 500); // Delay 500ms
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
+  const location = useLocation();
+
+  useEffect(() => {
+    const token = getToken();
+    if (token && isTokenValid(token)) {
+      const decoded = decodeToken(token);
+      if (decoded && decoded.username) {
+        setUsername(decoded.username);
+      }
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -36,16 +49,22 @@ export const Header = () => {
   }, [debouncedKeyword]);
 
   const handleSearchSubmit = (e) => {
-    e.preventDefault(); // Ngăn chặn hành vi mặc định của form
+    e.preventDefault();
     if (keyword.trim()) {
       navigate(`/san-pham?ten=${encodeURIComponent(keyword)}`);
-      setIsDialogOpen(false); // Đóng dialog
+      setIsDialogOpen(false);
     }
+    setKeyword("");
+  };
+
+  const handleLogout = () => {
+    removeToken();
+    setUsername("");
   };
 
   return (
     <header className="bg-primary shadow-lg lg:fixed top-0 w-full z-50">
-      <div className="container mx-auto flex items-center justify-between py-6">
+      <div className="container mx-auto flex items-center justify-between py-5">
         {/* Logo */}
         <div className="logo">
           <Link to="/" title="T&T Center">
@@ -68,8 +87,8 @@ export const Header = () => {
           </button>
 
           {/* Menu danh mục */}
-          <div className="absolute top-[110%] left-0 bg-white shadow-md rounded-md w-64 transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible">
-            <ul className="py-2">
+          <div className="absolute top-[110%] left-0 bg-white shadow-md overflow-hidden rounded-md w-64 transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible">
+            <ul>
               {categories.map((category, index) => (
                 <li key={index} className="hover:bg-gray-100 text-textBlack">
                   <Link
@@ -170,7 +189,7 @@ export const Header = () => {
 
         {/* Cart */}
         <div className="menu_cart hidden lg:flex items-center bg-[#3FB4F5] px-4 py-2.5 rounded-full">
-          <Link to="#" title="Giỏ hàng" className="flex items-center">
+          <Link to="gio-hang" title="Giỏ hàng" className="flex items-center">
             <img
               src="https://ttcenter.com.vn/images/cart.svg"
               alt="Giỏ hàng"
@@ -182,18 +201,50 @@ export const Header = () => {
             </span>
           </Link>
         </div>
-
         {/* Account */}
-        <div className="menu_account hidden lg:flex items-center bg-white/10 px-4 py-2.5 rounded-full">
-          <Link to="/dang-nhap" title="Đăng nhập" className="flex items-center">
-            <img
-              src="https://ttcenter.com.vn/images/user.svg"
-              alt="user"
-              title="user"
-              className="w-6 h-6 mr-2"
-            />
-            <span>Đăng nhập</span>
-          </Link>
+        <div className="relative">
+          {username ? (
+            <div className="group flex items-center">
+              <div className="cursor-pointer flex items-center bg-white/10 px-4 py-2.5 rounded-full">
+                <img
+                  src="https://ttcenter.com.vn/images/user.svg"
+                  alt="user"
+                  className="w-6 h-6 mr-2"
+                />
+                <span>{username}</span>
+              </div>
+              <div className="absolute right-0 top-[110%] w-48 bg-white rounded-md overflow-hidden transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible shadow-lg z-10">
+                <Link
+                  to="/thong-tin-ca-nhan"
+                  className="block text-textBlack px-4 py-2 hover:bg-gray-100"
+                >
+                  Trang cá nhân
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="block text-textBlack w-full text-left px-4 py-2 hover:bg-gray-100"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="menu_account hidden lg:flex items-center bg-white/10 px-4 py-2.5 rounded-full">
+              <Link
+                to="/dang-nhap"
+                title="Đăng nhập"
+                className="flex items-center"
+              >
+                <img
+                  src="https://ttcenter.com.vn/images/user.svg"
+                  alt="user"
+                  title="user"
+                  className="w-6 h-6 mr-2"
+                />
+                <span>Đăng nhập</span>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </header>
