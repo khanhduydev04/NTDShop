@@ -1,171 +1,216 @@
 ﻿using BE.Models;
-using BE.Services;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace BE.Controllers
+namespace BE.Services
 {
-    [Route("api/orders")]
-    [ApiController]
-    public class OrdersController : ControllerBase
+    public class OrderService
     {
-        private readonly OrderService _orderService;
+        private readonly ApplicationDbContext _context;
 
-        public OrdersController(OrderService orderService)
+        public OrderService(ApplicationDbContext context)
         {
-            _orderService = orderService;
+            _context = context;
         }
 
         // Lấy tất cả đơn hàng
-        [HttpGet]
-        public async Task<IActionResult> GetAllOrders()
+        public async Task<List<Order>> GetAllOrdersAsync()
         {
-            try
-            {
-                var orders = await _orderService.GetAllOrdersAsync();
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy danh sách đơn hàng.", error = ex.Message });
-            }
+            return await _context.Orders
+                .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.ProductVariant)
+                .ThenInclude(pv => pv.Product)
+                .Include(o => o.Address)
+                .ToListAsync();
         }
 
         // Lấy đơn hàng theo ID
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetOrderById(int id)
+        public async Task<Order?> GetOrderByIdAsync(int id)
         {
-            try
-            {
-                var order = await _orderService.GetOrderByIdAsync(id);
-                if (order == null)
-                {
-                    return NotFound($"Không tìm thấy đơn hàng với ID {id}");
-                }
-                return Ok(order);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi lấy thông tin đơn hàng.", error = ex.Message });
-            }
+            return await _context.Orders
+                .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.ProductVariant)
+                .ThenInclude(pv => pv.Product)
+                .Include(o => o.Address)
+                .FirstOrDefaultAsync(o => o.Id == id);
         }
 
         // Lấy các đơn hàng theo CustomerId
-        [HttpGet("customer/{customerId}")]
-        public async Task<IActionResult> GetOrdersByCustomerId(string customerId)
+        public async Task<List<Order>> GetOrdersByCustomerIdAsync(string customerId)
         {
-            try
-            {
-                var orders = await _orderService.GetOrdersByCustomerIdAsync(customerId);
-
-                // Trả về một mảng rỗng nếu không có đơn hàng nào
-                if (orders == null || !orders.Any())
-                {
-                    return Ok(new List<object>()); // Trả về danh sách rỗng với status 200
-                }
-
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    message = "Có lỗi xảy ra khi lấy danh sách đơn hàng của khách hàng.",
-                    error = ex.Message
-                });
-            }
+            return await _context.Orders
+                .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.ProductVariant)
+                .ThenInclude(pv => pv.Product)
+                .Include(o => o.Address)
+                .Where(o => o.CustomerId == customerId)
+                .ToListAsync();
         }
-
 
         // Tạo mới đơn hàng
-        [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] Order order)
+        public async Task<Order?> CreateOrderAsync(Order order)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Tạo mới đơn hàng
-                var createdOrder = await _orderService.CreateOrderAsync(order);
-
-                if (order.PaymentMethod == "Online")
+                foreach (var orderDetail in order.OrderDetails)
                 {
-                    // Nếu là thanh toán online, trả về thông tin tạo URL thanh toán
-                    return Ok(new
+                    var productVariant = await _context.ProductVariants.FindAsync(orderDetail.ProductVariantId);
+                    if (productVariant == null)
                     {
-                        Message = "Đơn hàng đã được tạo. Vui lòng tiến hành thanh toán.",
-                        OrderId = createdOrder!.Id
-                    });
+                        throw new Exception($"Không tìm thấy biến thể sản phẩm với ID {orderDetail.ProductVariantId}.");
+                    }
+
+                    if (productVariant.Stock < orderDetail.Quantity)
+                    {
+                        throw new Exception($"Sản phẩm {productVariant.Product?.Name} không đủ tồn kho.");
+                    }
+
+                    productVariant.Stock -= orderDetail.Quantity;
+
+                    orderDetail.Price = productVariant.Price;
                 }
 
-                return CreatedAtAction(nameof(GetOrderById), new { id = createdOrder!.Id }, createdOrder);
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return order;
             }
-            catch (Exception ex)
+            catch
             {
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi tạo mới đơn hàng.", error = ex.Message });
+                await transaction.RollbackAsync();
+                throw;
             }
-        }
-
-        [HttpPut("status/{orderId}")]
-        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] dynamic requestBody)
-        {
-            string paymentStatus = requestBody.PaymentStatus;
-            string status = requestBody.Status;
-
-            var success = await _orderService.UpdateOrderStatusAsync(orderId, paymentStatus, status);
-            if (!success)
-            {
-                return NotFound(new { Message = "Không tìm thấy đơn hàng." });
-            }
-
-            return Ok(new { Message = "Cập nhật trạng thái đơn hàng thành công." });
         }
 
         // Cập nhật đơn hàng
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order updatedOrder)
+        public async Task<bool> UpdateOrderAsync(int id, Order updatedOrder)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var success = await _orderService.UpdateOrderAsync(id, updatedOrder);
-                if (!success)
+                var existingOrder = await _context.Orders
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefaultAsync(o => o.Id == id);
+
+                if (existingOrder == null)
                 {
-                    return NotFound($"Không tìm thấy đơn hàng với ID {id}");
+                    return false;
                 }
 
-                return NoContent();
+                _context.Entry(existingOrder).CurrentValues.SetValues(updatedOrder);
+
+                var existingDetails = existingOrder.OrderDetails.ToList();
+
+                foreach (var existingDetail in existingDetails)
+                {
+                    var updatedDetail = updatedOrder.OrderDetails
+                        .FirstOrDefault(od => od.Id == existingDetail.Id);
+
+                    if (updatedDetail == null)
+                    {
+                        var productVariant = await _context.ProductVariants.FindAsync(existingDetail.ProductVariantId);
+                        if (productVariant != null)
+                        {
+                            productVariant.Stock += existingDetail.Quantity;
+                        }
+
+                        _context.OrderDetails.Remove(existingDetail);
+                    }
+                    else
+                    {
+                        var productVariant = await _context.ProductVariants.FindAsync(existingDetail.ProductVariantId);
+                        if (productVariant != null)
+                        {
+                            int stockChange = existingDetail.Quantity - updatedDetail.Quantity;
+
+                            if (stockChange > 0)
+                            {
+                                productVariant.Stock += stockChange;
+                            }
+                            else if (productVariant.Stock >= Math.Abs(stockChange))
+                            {
+                                productVariant.Stock += stockChange;
+                            }
+                            else
+                            {
+                                throw new Exception($"Sản phẩm {productVariant.Product?.Name} không đủ tồn kho.");
+                            }
+                        }
+
+                        _context.Entry(existingDetail).CurrentValues.SetValues(updatedDetail);
+                    }
+                }
+
+                foreach (var newDetail in updatedOrder.OrderDetails.Where(od => od.Id == 0))
+                {
+                    var productVariant = await _context.ProductVariants.FindAsync(newDetail.ProductVariantId);
+                    if (productVariant == null)
+                    {
+                        throw new Exception($"Không tìm thấy biến thể sản phẩm với ID {newDetail.ProductVariantId}.");
+                    }
+
+                    if (productVariant.Stock < newDetail.Quantity)
+                    {
+                        throw new Exception($"Sản phẩm {productVariant.Product?.Name} không đủ tồn kho.");
+                    }
+
+                    productVariant.Stock -= newDetail.Quantity;
+
+                    existingOrder.OrderDetails.Add(newDetail);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi cập nhật đơn hàng.", error = ex.Message });
+                await transaction.RollbackAsync();
+                throw;
             }
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        public async Task<bool> UpdateOrderStatusAsync(int orderId, string paymentStatus, string status)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null)
+            {
+                return false;
+            }
+
+            order.PaymentStatus = paymentStatus ?? order.PaymentStatus;
+            order.Status = status ?? order.Status;
+
+            _context.Orders.Update(order);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         // Xóa đơn hàng
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrder(int id)
+        public async Task<bool> DeleteOrderAsync(int id)
         {
-            try
-            {
-                var success = await _orderService.DeleteOrderAsync(id);
-                if (!success)
-                {
-                    return NotFound($"Không tìm thấy đơn hàng với ID {id}");
-                }
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.Id == id);
 
-                return NoContent();
-            }
-            catch (Exception ex)
+            if (order == null)
             {
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi xóa đơn hàng.", error = ex.Message });
+                return false;
             }
+
+            foreach (var detail in order.OrderDetails)
+            {
+                var productVariant = await _context.ProductVariants.FindAsync(detail.ProductVariantId);
+                if (productVariant != null)
+                {
+                    productVariant.Stock += detail.Quantity;
+                }
+            }
+
+            _context.Orders.Remove(order);
+            await _context.SaveChangesAsync();
+            return true;
         }
-    }
+    }  
 }

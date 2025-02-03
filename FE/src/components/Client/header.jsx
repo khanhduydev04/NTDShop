@@ -7,16 +7,21 @@ import { searchProducts } from "@/services/product";
 import { AlignJustify } from "lucide-react";
 import { getCategories } from "@/services/category";
 import { getToken, removeToken, decodeToken, isTokenValid } from "@/utils/auth";
+import { useDispatch, useSelector } from "react-redux";
+import { setCart } from "@/store/cartSlice"; 
 
 export const Header = () => {
   const [keyword, setKeyword] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [username, setUsername] = useState("");
-  const debouncedKeyword = useDebounce(keyword, 500); // Delay 500ms
+  const debouncedKeyword = useDebounce(keyword, 500); // Trì hoãn 500ms
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const location = useLocation();
+  const dispatch = useDispatch();
+  const cartItems = useSelector((state) => state.cart.items);
+  const cartCount = useSelector((state) => state.cart.items.reduce((total, item) => total + item.quantity, 0));
 
   useEffect(() => {
     const token = getToken();
@@ -38,7 +43,7 @@ export const Header = () => {
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (debouncedKeyword) {
+      if (debouncedKeyword.trim()) {
         const result = await searchProducts({ keyword: debouncedKeyword });
         setSuggestions(result || []);
       } else {
@@ -48,14 +53,27 @@ export const Header = () => {
     fetchSuggestions();
   }, [debouncedKeyword]);
 
+  useEffect(() => {
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      dispatch(setCart(cart)); // Đồng bộ giỏ hàng với Redux
+    };
+
+    window.addEventListener("cartUpdated", updateCartCount);
+    updateCartCount(); // Cập nhật ngay khi component mount
+
+    return () => {
+      window.removeEventListener("cartUpdated", updateCartCount);
+    };
+  }, [dispatch]);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (keyword.trim()) {
       navigate(`/san-pham?ten=${encodeURIComponent(keyword)}`);
-      setIsDialogOpen(false);
     }
-    setKeyword("");
   };
+
 
   const handleLogout = () => {
     removeToken();
@@ -71,12 +89,12 @@ export const Header = () => {
             <img
               src="https://ttcenter.com.vn/images/logo.svg"
               alt="T&T Center"
-              title="T&T Center"
               className="w-32 md:w-48"
             />
           </Link>
         </div>
 
+        {/* Menu danh mục */}
         <div className="group relative">
           <button
             className="bg-white/10 group-hover:bg-[#3FB4F5] px-4 py-2.5 rounded-full flex items-center gap-2 leading-5"
@@ -85,8 +103,6 @@ export const Header = () => {
             <AlignJustify strokeWidth={1.5} className="size-5" />
             <span>Danh mục</span>
           </button>
-
-          {/* Menu danh mục */}
           <div className="absolute top-[110%] left-0 bg-white shadow-md overflow-hidden rounded-md w-64 transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible">
             <ul>
               {categories.map((category, index) => (
@@ -103,7 +119,7 @@ export const Header = () => {
           </div>
         </div>
 
-        {/* Search */}
+        {/* Tìm kiếm */}
         <div className="menu_search hidden lg:flex items-center relative">
           <form
             className="flex relative w-40 md:w-80 rounded-full overflow-hidden bg-white"
@@ -116,20 +132,18 @@ export const Header = () => {
               value={keyword}
               onChange={(e) => {
                 setKeyword(e.target.value);
-                setIsDialogOpen(true); // Mở dialog khi nhập liệu
+                setIsDialogOpen(true);
               }}
               placeholder="Nhập tên sản phẩm cần tìm ..."
               className="px-3 py-2 flex-1 focus:outline-none text-textBlack"
             />
             <button
-              type="submit" // Chuyển sang trang khi nhấn nút
+              type="submit"
               className="text-textPrimary p-2 pr-3"
             >
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </button>
           </form>
-
-          {/* Dialog */}
           {isDialogOpen && suggestions.length > 0 && (
             <div className="absolute top-[110%] left-0 w-full bg-white border rounded-md shadow-lg z-10 overflow-hidden">
               <ul>
@@ -138,7 +152,7 @@ export const Header = () => {
                     key={product.id}
                     className="p-2 hover:bg-gray-200 cursor-pointer"
                     onClick={() => {
-                      setIsDialogOpen(false); // Đóng dialog
+                      setIsDialogOpen(false);
                     }}
                   >
                     <Link to={`/san-pham/${product.slug}`} className="block">
@@ -149,12 +163,8 @@ export const Header = () => {
                           className="w-10 h-10 mr-4"
                         />
                         <div>
-                          <p className="font-medium text-textBlack">
-                            {product.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Giá: {product.price.toLocaleString()}đ
-                          </p>
+                          <p className="font-medium text-textBlack">{product.name}</p>
+                          <p className="text-sm text-gray-500">Giá: {product.price.toLocaleString()}đ</p>
                         </div>
                       </div>
                     </Link>
@@ -165,29 +175,7 @@ export const Header = () => {
           )}
         </div>
 
-        {/* Hotline */}
-        <div className="menu_hotline hidden lg:flex items-center cursor-pointer">
-          <a
-            href="tel:0898.143.789"
-            title="Hotline CSKH"
-            className="flex items-center"
-          >
-            <img
-              src="https://ttcenter.com.vn/images/hotline.svg"
-              alt="hotline"
-              title="hotline"
-              className="w-6 h-6 mr-2"
-            />
-            <div>
-              <p className="text-sm">Hotline CSKH</p>
-              <p>
-                <strong>0898.143.789</strong>
-              </p>
-            </div>
-          </a>
-        </div>
-
-        {/* Cart */}
+        {/* Giỏ hàng */}
         <div className="menu_cart hidden lg:flex items-center bg-[#3FB4F5] px-4 py-2.5 rounded-full">
           <Link to="gio-hang" title="Giỏ hàng" className="flex items-center">
             <img
@@ -197,11 +185,12 @@ export const Header = () => {
               className="size-5 mr-2"
             />
             <span>
-              Giỏ hàng <strong className="number_cart">0</strong>
+              Giỏ hàng <strong className="number_cart">{cartCount}</strong>
             </span>
           </Link>
         </div>
-        {/* Account */}
+
+        {/* Tài khoản */}
         <div className="relative">
           {username ? (
             <div className="group flex items-center">

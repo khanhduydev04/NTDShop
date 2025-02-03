@@ -1,5 +1,14 @@
 import axiosInstance from "@/configs/api";
 
+export const getProductsFilterCart = async (params) => {
+  try {
+    const { data } = await axiosInstance.get("/products", { params });
+    return data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API:", error);
+  }
+};
+
 export const getProductsFilter = async (params) => {
   try {
     const { data } = await axiosInstance.get("/products/active", { params });

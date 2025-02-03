@@ -1,69 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getOrdersByUserId } from '@/services/order';
+import { useNavigate } from 'react-router-dom';
+import { getToken } from '@/utils/auth';
+import { jwtDecode } from 'jwt-decode';
 
 export const OrderTabs = () => {
-    const [activeTab, setActiveTab] = useState('processing'); // Tab mặc định
+    const [activeTab, setActiveTab] = useState('Đã đặt hàng');
+    const [orders, setOrders] = useState({
+        'Đã đặt hàng': [],
+        'Đang vận chuyển': [],
+        'Đã giao hàng': [],
+        'Đã hủy': []
+    });
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-    // Dữ liệu mẫu
-    const orders = {
-        processing: [
-            { id: 1, name: 'Đơn hàng 1', date: '14/01/2025', total: '500.000đ' },
-            { id: 2, name: 'Đơn hàng 2', date: '13/01/2025', total: '300.000đ' },
-        ],
-        delivering: [
-            { id: 3, name: 'Đơn hàng 3', date: '12/01/2025', total: '700.000đ' },
-        ],
-        delivered: [
-            { id: 4, name: 'Đơn hàng 4', date: '10/01/2025', total: '1.000.000đ' },
-        ],
-        canceled: [
-            { id: 5, name: 'Đơn hàng 5', date: '08/01/2025', total: '200.000đ' },
-        ],
+    const token = getToken();
+    const decoded = jwtDecode(token);
+    const userId = decoded.id;
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const allOrders = await getOrdersByUserId(userId);
+                const categorizedOrders = {
+                    'Đã đặt hàng': allOrders.filter(order => order.status === 'Đã đặt hàng'),
+                    'Đang vận chuyển': allOrders.filter(order => order.status === 'Đang vận chuyển'),
+                    'Đã giao hàng': allOrders.filter(order => order.status === 'Đã giao hàng'),
+                    'Đã hủy': allOrders.filter(order => order.status === 'Đã hủy')
+                };
+                setOrders(categorizedOrders);
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOrders();
+    }, [userId]);
+
+    const calculateTotalPrice = (order) => {
+        return order.orderDetails.reduce((total, detail) => total + (detail.price * detail.quantity), 0);
     };
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div>
             {/* Tabs */}
             <div className="flex border-b mb-4">
-                <button
-                    className={`py-2 px-4 ${
-                        activeTab === 'processing'
-                            ? 'text-primary border-b-2 border-primary'
-                            : 'text-gray-500 hover:text-primary'
-                    }`}
-                    onClick={() => setActiveTab('processing')}
-                >
-                    Đang xử lý
-                </button>
-                <button
-                    className={`py-2 px-4 ${
-                        activeTab === 'delivering'
-                            ? 'text-primary border-b-2 border-primary'
-                            : 'text-gray-500 hover:text-primary'
-                    }`}
-                    onClick={() => setActiveTab('delivering')}
-                >
-                    Đơn đang giao
-                </button>
-                <button
-                    className={`py-2 px-4 ${
-                        activeTab === 'delivered'
-                            ? 'text-primary border-b-2 border-primary'
-                            : 'text-gray-500 hover:text-primary'
-                    }`}
-                    onClick={() => setActiveTab('delivered')}
-                >
-                    Đơn đã giao
-                </button>
-                <button
-                    className={`py-2 px-4 ${
-                        activeTab === 'canceled'
-                            ? 'text-primary border-b-2 border-primary'
-                            : 'text-gray-500 hover:text-primary'
-                    }`}
-                    onClick={() => setActiveTab('canceled')}
-                >
-                    Đơn đã hủy
-                </button>
+                {Object.keys(orders).map((status) => (
+                    <button
+                        key={status}
+                        className={`py-2 px-4 ${activeTab === status ? 'text-primary border-b-2 border-primary' : 'text-gray-500 hover:text-primary'}`}
+                        onClick={() => setActiveTab(status)}
+                    >
+                        {status}
+                    </button>
+                ))}
             </div>
 
             {/* Tab Content */}
@@ -75,9 +72,9 @@ export const OrderTabs = () => {
                                 key={order.id}
                                 className="p-4 border border-primary rounded-lg hover:shadow-md transition-shadow"
                             >
-                                <h3 className="text-lg text-primary font-semibold">{order.name}</h3>
-                                <p className="text-gray-600">Ngày đặt: {order.date}</p>
-                                <p className="text-gray-600">Tổng tiền: {order.total}</p>
+                                <h3 className="text-lg text-primary font-semibold">Mã đơn hàng: {order.id}</h3>
+                                <p className="text-gray-600">Ngày đặt: {order.dateOrder}</p>
+                                <p className="text-gray-600">Tổng tiền: {calculateTotalPrice(order).toLocaleString()} VND</p>
                             </div>
                         ))}
                     </div>

@@ -1,4 +1,6 @@
 import axiosInstance from "@/configs/api";
+import { jwtDecode } from "jwt-decode";
+import { getToken } from "@/utils/auth"; 
 
 export const register = async (data) => {
   try {
@@ -67,3 +69,4 @@ export const changePassword = async (data, token) => {
     console.error(error);
   }
 };
+

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { AddressList } from "@/components/Client/Profile/addressList";
 import { Information } from "@/components/Client/Profile/information";
 import { OrderTabs } from "@/components/Client/Profile/oders";
@@ -12,13 +11,20 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getMe, changeProfile, changePassword } from "@/services/auth";
 import { getOrdersByUserId } from "@/services/order";
 import { getToken, isTokenValid, decodeToken, removeToken } from "@/utils/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export const Profile = () => {
-  const [activeTab, setActiveTab] = useState("orders"); // Tab mặc định
-  const [user, setUser] = useState({});
-  const [orders, setOrders] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation(); // Lấy state từ điều hướng
+  const [activeTab, setActiveTab] = useState("orders");
+  const [user, setUser] = useState({});
+
+  // Khi trang load, kiểm tra xem có state activeTab được truyền vào hay không
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location]);
 
   const handleLogout = () => {
     removeToken();
@@ -27,18 +33,22 @@ export const Profile = () => {
 
   useEffect(() => {
     const fetchData = async (token, userId) => {
-      const [userData, orderData] = await Promise.all([
-        getMe(token),
-        getOrdersByUserId(userId),
-      ]);
-      if (userData) setUser(userData);
-      if (orderData) setOrders(orderData);
+      try {
+        const [userData, orderData] = await Promise.all([
+          getMe(token),
+        ]);
+        if (userData) setUser(userData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
     };
 
     const token = getToken();
     if (isTokenValid(token)) {
       const userDecode = decodeToken(token);
       fetchData(token, userDecode.id);
+    } else {
+      console.log("Token không hợp lệ hoặc hết hạn.");
     }
   }, []);
 
@@ -48,7 +58,7 @@ export const Profile = () => {
       <div className="md:col-span-1 col-span-1">
         <div className="bg-white p-4 rounded-lg">
           <div
-            className="flex justify-start items-center gap-4"
+            className="flex justify-start items-center gap-4 cursor-pointer"
             onClick={() => setActiveTab("profile")}
           >
             <img
@@ -57,31 +67,36 @@ export const Profile = () => {
               alt="Avatar"
             />
             <div>
-              <h3 className="text-md font-semibold">Đinh Phương Nhã</h3>
+              <h3 className="text-md font-semibold">{user.fullName}</h3>
               <p className="text-gray-500 text-sm">Thông tin cá nhân</p>
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg mt-2 py-2">
+          {/* Tab Đơn Hàng */}
           <div
-            className={`flex justify-start items-center gap-4 p-4 transition-all duration-200 ease-in-out 
-                        ${activeTab === "orders" ? "hover:bg-gray-100 border-l-2 border-primary text-primary" : "hover:ps-6 hover:bg-gray-100 hover:border-l-2 "}`}
+            className={`flex justify-start items-center gap-4 p-4 cursor-pointer 
+                        ${activeTab === "orders" ? "bg-gray-100 border-l-4 border-primary text-primary" : "hover:bg-gray-100 hover:border-l-2 "}`}
             onClick={() => setActiveTab("orders")}
           >
             <FontAwesomeIcon icon={faBox} />
             <p className="text-md">Thông tin đơn hàng</p>
           </div>
+
+          {/* Tab Địa Chỉ */}
           <div
-            className={`flex justify-start items-center gap-4 p-4 transition-all duration-200 ease-in-out 
-                        ${activeTab === "addresses" ? "hover:bg-gray-100 border-l-2 border-primary text-primary" : "hover:ps-6 hover:bg-gray-100 hover:border-l-2 "}`}
+            className={`flex justify-start items-center gap-4 p-4 cursor-pointer 
+                        ${activeTab === "addresses" ? "bg-gray-100 border-l-4 border-primary text-primary" : "hover:bg-gray-100 hover:border-l-2 "}`}
             onClick={() => setActiveTab("addresses")}
           >
             <FontAwesomeIcon icon={faLocationDot} />
             <p className="text-md">Sổ địa chỉ nhận hàng</p>
           </div>
+
+          {/* Đăng xuất */}
           <div
-            className={`flex justify-start items-center gap-4 p-4 transition-all duration-200 ease-in-out 
-                        ${activeTab === "logout" ? "hover:bg-gray-100 border-l-2 border-primary text-primary" : "hover:ps-6 hover:bg-gray-100 hover:border-l-2 "}`}
+            className={`flex justify-start items-center gap-4 p-4 cursor-pointer 
+                        hover:bg-gray-100 hover:border-l-2`}
             onClick={handleLogout}
           >
             <FontAwesomeIcon icon={faRightFromBracket} />
@@ -90,10 +105,10 @@ export const Profile = () => {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Nội dung Tab */}
       <div className="md:col-span-3 col-span-1">
         <div className="bg-white p-4 rounded-lg">
-          {activeTab === "profile" && <Information />}
+          {activeTab === "profile" && <Information user={user} />}
           {activeTab === "orders" && <OrderTabs />}
           {activeTab === "addresses" && <AddressList />}
         </div>
