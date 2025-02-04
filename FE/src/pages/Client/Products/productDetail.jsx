@@ -128,16 +128,18 @@ const ProductDetailPage = () => {
           <div className="my-8 flex justify-center items-center gap-2 ">
             <Button
               bgColor={"delete"}
-              className={"w-full py-1 text-lg font-semibold"}
+              className={
+                "text-sm md:text-base w-full !p-1 lg:text-lg font-semibold"
+              }
             >
               Mua ngay
-              <p className="text-sm font-light">
+              <p className="text-xs lg:text-sm font-light">
                 (Giao hàng tận nơi hoặc lấy tại cửa hàng)
               </p>
             </Button>
             <Button
               bgColor={"outline"}
-              className={"h-[64px] w-[70px] text-lg font-semibold"}
+              className={"lg:h-[64px] lg:w-[70px] text-lg font-semibold"}
             >
               <FontAwesomeIcon icon={faCartShopping} />
             </Button>

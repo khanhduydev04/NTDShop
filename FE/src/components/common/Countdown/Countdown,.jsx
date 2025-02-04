@@ -30,28 +30,28 @@ export default function Countdown({ targetDate }) {
   }, [targetDate]);
 
   return (
-    <div className="flex items-center space-x-2 font-semibold text-white">
+    <div className="flex items-center space-x-2 font-semibold text-white text-xs sm:text-sm lg:text-base">
       <span>Kết thúc sau:</span>
       <div className="flex items-center space-x-1">
-        <div className="bg-white/15 rounded-full p-2 size-9 flex items-center justify-center">
+        <div className="bg-white/15 rounded-full p-1 lg:p-2 size-7 lg:size-9 flex items-center justify-center">
           {timeLeft.days}
         </div>
         <span>ngày</span>
       </div>
       <div className="flex items-center space-x-1">
-        <div className="bg-white/15 rounded-full p-2 size-9 flex items-center justify-center">
+        <div className="bg-white/15 rounded-full p-1 lg:p-2 size-7 lg:size-9 flex items-center justify-center">
           {timeLeft.hours}
         </div>
         <span>giờ</span>
       </div>
       <div className="flex items-center space-x-1">
-        <div className="bg-white/15 rounded-full p-2 size-9 flex items-center justify-center">
+        <div className="bg-white/15 rounded-full p-1 lg:p-2 size-7 lg:size-9 flex items-center justify-center">
           {timeLeft.minutes}
         </div>
         <span>phút</span>
       </div>
       <div className="flex items-center space-x-1">
-        <div className="bg-white/15 rounded-full p-2 size-9 flex items-center justify-center">
+        <div className="bg-white/15 rounded-full p-1 lg:p-2 size-7 lg:size-9 flex items-center justify-center">
           {timeLeft.seconds}
         </div>
         <span>giây</span>

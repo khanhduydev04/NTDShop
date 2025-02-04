@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { register as registerApi } from "@/services/auth";
+import { useToast } from "@/hooks/use-toast";
 
 // Định nghĩa schema validation bằng Zod
 const registerSchema = z
@@ -49,22 +50,37 @@ export const RegisterPage = () => {
     resolver: zodResolver(registerSchema),
   });
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const onSubmit = async (data) => {
-    console.log(data);
     try {
       const response = await registerApi(data);
       if (response) {
+        toast({
+          variant: "success",
+          title: "Đăng ký thành công!",
+        });
         navigate("/dang-nhap");
       }
     } catch (error) {
-      console.error(error);
+      if (error.response && error.response.status === 409) {
+        toast({
+          variant: "destructive",
+          title: "Đăng ký thất bại!",
+          description: error.response.data.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Đăng ký thất bại!",
+        });
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5">
-      <div className="bg-white shadow-lg rounded-lg px-8 py-6 max-w-md lg:max-w-4xl w-full">
+    <div className="min-h-screen flex items-center justify-center p-2 md:p-5">
+      <div className="bg-white shadow-lg rounded-lg px-5 py-2 md:px-8 md:py-6 max-w-md lg:max-w-4xl w-full">
         <h2 className="text-2xl text-primary font-bold text-center mb-6">
           Đăng Ký
         </h2>
