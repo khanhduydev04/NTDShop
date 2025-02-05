@@ -4,19 +4,19 @@ import { LaptopMemoryList } from "@/components/Client/Product/MemoryProduct";
 import { ColorOptions } from "@/components/Client/Product/ColorProduct";
 import { Button } from "../../../components/common/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faCartShopping,
-  faCircleCheck,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCartShopping, faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import Specifications from "@/components/Client/Product/Specifications";
 import { useParams } from "react-router-dom";
 import { getProductDetail, getProductsFilter } from "@/services/product";
 import { useEffect, useState } from "react";
 import ProductReview from "@/components/Client/Product/ReviewProduct";
 import ProductMainSlider from "@/components/common/Slider/ProductMainSlider";
+import { useDispatch } from 'react-redux';
+import { addToCart } from '@/store/cartSlice'; // Import action addToCart
 
 const ProductDetailPage = () => {
   const { slug } = useParams();
+  const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
   const [product, setProduct] = useState(null);
   const [images, setImages] = useState([]);
@@ -84,6 +84,16 @@ const ProductDetailPage = () => {
     setSelectedColorId(colorId);
   };
 
+  // Xử lý sự kiện thêm vào giỏ hàng
+  const handleAddToCart = () => {
+    const variantId = activeMemoryId || selectedColorId;
+    if (variantId) {
+      dispatch(addToCart({ id: product.id, variantId, quantity: 1 })); // Thêm sản phẩm vào giỏ hàng với số lượng 1
+    } else {
+      alert('Vui lòng chọn màu sắc và dung lượng');
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -128,9 +138,8 @@ const ProductDetailPage = () => {
           <div className="my-8 flex justify-center items-center gap-2 ">
             <Button
               bgColor={"delete"}
-              className={
-                "text-sm md:text-base w-full !p-1 lg:text-lg font-semibold"
-              }
+              className={"text-sm md:text-base w-full !p-1 lg:text-lg font-semibold"}
+              onClick={handleAddToCart} // Thêm sự kiện onClick cho nút "Mua ngay"
             >
               Mua ngay
               <p className="text-xs lg:text-sm font-light">
@@ -140,6 +149,7 @@ const ProductDetailPage = () => {
             <Button
               bgColor={"outline"}
               className={"lg:h-[64px] lg:w-[70px] text-lg font-semibold"}
+              onClick={handleAddToCart}
             >
               <FontAwesomeIcon icon={faCartShopping} />
             </Button>

@@ -1,17 +1,144 @@
-import { Button } from '@/components/common/Button';
-import { faShoppingCart, faTrash, faTruck, faUser } from '@fortawesome/free-solid-svg-icons';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { faMapMarkerAlt, faShoppingCart, faTruck, faUser } from '@fortawesome/free-solid-svg-icons';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { getDefaultAddressForOrder } from '@/services/address';
+import { getToken, isTokenValid } from '@/utils/auth';
+import { jwtDecode } from 'jwt-decode';
+import { createOrder } from '@/services/order';
+import { Button } from '@/components/common/Button';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearCart } from '@/store/cartSlice';
+import { getProductsFilterCart } from '@/services/product';
 
 export const OderForm = () => {
+    const [defaultAddress, setDefaultAddress] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [totalPrice, setTotalPrice] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [detailedProducts, setDetailedProducts] = useState([]);
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const cartProducts = useSelector((state) => state.cart.items);
+
+    useEffect(() => {
+        const initializeUser = async () => {
+            try {
+                const token = getToken();
+                if (token && isTokenValid(token)) { 
+                    const decoded = jwtDecode(token);
+                    console.log(decoded.id);
+                    setUserId(decoded.id);
+                } else {
+                    navigate('/dang-nhap');
+                }
+            } catch (error) {
+                console.error("Lỗi khi giải mã token:", error);
+            }
+        };
+    
+        initializeUser();
+    }, []);
+
+    useEffect(() => {
+        const fetchDefaultAddress = async () => {
+            if (!userId) return;
+            try {
+                const address = await getDefaultAddressForOrder(userId);
+                setDefaultAddress(address);
+            } catch (error) {
+                console.error("Lỗi khi lấy địa chỉ mặc định:", error);
+            }
+        };
+
+        fetchDefaultAddress();
+    }, [userId]);
+
+    useEffect(() => {
+        const fetchCartProducts = async () => {
+            const productIds = cartProducts.map(item => item.id);
+            if (productIds.length === 0) {
+                setLoading(false);
+                return;
+            }
+            const products = await getProductsFilterCart({ ids: productIds });
+
+            const productsWithQuantity = products.map(product => {
+                const cartItem = cartProducts.find(item => item.id === product.id);
+                if (cartItem) {
+                    return { ...product, quantity: cartItem.quantity };
+                }
+                return null;
+            }).filter(product => product !== null);
+
+            setDetailedProducts(productsWithQuantity);
+            setLoading(false);
+            calculateTotalPrice(productsWithQuantity);
+        };
+
+        fetchCartProducts();
+    }, [cartProducts]);
+
+    const calculateTotalPrice = (products) => {
+        const total = products.reduce((sum, product) => {
+            const variant = product.productVariants && product.productVariants[0];
+            const price = variant ? variant.price : 0;
+            const quantity = product.quantity || 0;
+            return sum + (price * quantity);
+        }, 0);
+        setTotalPrice(total);
+    };
+
+    const handleConfirmOrder = async (event) => {
+        event.preventDefault();
+        const orderData = {
+            dateOrder: new Date().toISOString().split('T')[0],
+            dateReceive: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0],
+            deliveryCost: 50000,
+            paymentStatus: "Chưa thanh toán",
+            status: "Đã đặt hàng",
+            isActive: true,
+            addressId: defaultAddress?.id,
+            paymentMethod: "COD",
+            customerId: userId,
+            orderDetails: detailedProducts.map(product => ({
+                productVariantId: product.productVariants[0]?.id,
+                quantity: product.quantity,
+                price: product.productVariants[0]?.price,
+            }))
+        };
+
+        try {
+            const createdOrder = await createOrder(orderData);
+
+            if (createdOrder) {
+                toast.success("🎉 Đặt hàng thành công! Cảm ơn bạn đã mua sắm.");
+                dispatch(clearCart());
+                setTotalPrice(0);
+
+                const event = new Event('cartUpdated');
+                window.dispatchEvent(event);
+
+                setTimeout(() => {
+                    navigate(`/xac-nhan-dat-hang/${createdOrder.id}`);
+                }, 2000);
+            }
+        } catch (error) {
+            console.error('Lỗi khi tạo đơn hàng:', error);
+            if (error.response) {
+                console.error('Server responded with:', error.response.data);
+            } else {
+                console.error('Error message:', error.message);
+            }
+        }
+    };
+
     return (
-        <div className="box-ordering-steps p-4 max-w-screen-lg mx-auto">
+        <div className="box-ordering-steps pb-10 max-w-screen-lg mx-auto">
             {/* Back Button */}
-            <Link
-                to="/"
-                className="button-comeback flex items-center cursor-pointer mb-4"
-            >
+            <Link to="/" className="button-comeback flex items-center cursor-pointer">
                 <span className="flex items-center text-primary">
                     <i className="icon-back mr-2"></i> Quay lại
                 </span>
@@ -44,131 +171,74 @@ export const OderForm = () => {
                 </li>
             </ul>
 
-            {/* Form */}
-            <div className="max-w-3xl mx-auto p-6 bg-white shadow-md rounded-md">
-                <form className="space-y-6" id="form_info_order" name="form_info_order" method="post">
-                    {/* Hidden Inputs */}
-                    <input type="hidden" name="code_order" id="code_order" />
-                    <input type="hidden" name="code_price_sale" id="code_price_sale" />
-
-                    {/* Customer Info */}
-                    <div>
-                        <label className="block text-lg font-semibold mb-2">Thông tin khách hàng</label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input
-                                type="text"
-                                id="full_name_order"
-                                name="full_name_order"
-                                placeholder="Họ và tên *"
-                                className="w-full p-2 border border-gray-300 rounded-md"
-                                required
-                            />
-                            <input
-                                type="text"
-                                id="phone_number_order"
-                                name="phone_number_order"
-                                placeholder="Số điện thoại *"
-                                className="w-full p-2 border border-gray-300 rounded-md"
-                                required
-                            />
-                            <input
-                                type="text"
-                                id="email_order"
-                                name="email_order"
-                                placeholder="Email *"
-                                className="w-full p-2 border border-gray-300 rounded-md"
-                                required
-                            />
-                        </div>
+            <div className="max-w-3xl mx-auto">
+                {/* Address Section */}
+                <div className="bg-white shadow-sm rounded-md p-6 mb-2">
+                    <label className="block text-lg font-semibold mb-2">
+                        <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-primary" />
+                        Địa chỉ nhận hàng
+                    </label>
+                    <div className="flex justify-between items-center">
+                        {defaultAddress ? (
+                            <>
+                                <p className='font-semibold'>{defaultAddress.name} - {defaultAddress.phone}</p>
+                                <p>{defaultAddress.fullAddress} <span className='text-red-500 text-sm'>(Mặc định)</span></p>
+                            </>
+                        ) : (
+                            <p>Không có địa chỉ mặc định nào được thiết lập.</p>
+                        )}
+                        <Link to="/thong-tin-ca-nhan" state={{ activeTab: "addresses" }}>
+                            <Button bgColor="text">Thay đổi</Button>
+                        </Link>
                     </div>
+                </div>
 
-                    {/* Delivery Address */}
-                    <div id="method_order_1" className="space-y-4">
-                        <select
-                            name="province"
-                            id="province"
-                            className="w-full p-2 border border-gray-300 rounded-md"
-                        >
-                            <option value="">Chọn Tỉnh / Thành Phố</option>
-                            <option value="01">Thành Phố Hà Nội</option>
-                            <option value="48">Thành Phố Đà Nẵng</option>
-                            <option value="79">Thành Phố Hồ Chí Minh</option>
-                        </select>
-
-                        <select
-                            name="district"
-                            id="district"
-                            className="w-full p-2 border border-gray-300 rounded-md"
-                        >
-                            <option value="">Chọn Quận / Huyện</option>
-                        </select>
-
-                        <select
-                            name="wards"
-                            id="wards"
-                            className="w-full p-2 border border-gray-300 rounded-md"
-                        >
-                            <option value="">Chọn Phường / Xã</option>
-                        </select>
-
-                        <input
-                            type="text"
-                            id="address_order"
-                            name="address_order"
-                            placeholder="Số nhà / tên đường"
-                            className="w-full p-2 border border-gray-300 rounded-md"
-                        />
+                {/* Products Section */}
+                <div className="bg-white shadow-sm rounded-md p-6 mb-2">
+                    <div className="mt-4">
+                        {loading ? (
+                            <div>Đang tải sản phẩm...</div>
+                        ) : detailedProducts.length > 0 ? (
+                            detailedProducts.map((product, index) => (
+                                <div key={index} className="flex justify-between items-center border p-4 rounded-md mb-2">
+                                    <div className="flex items-center">
+                                        {/* Lấy ảnh đầu tiên trong mảng productImages */}
+                                        <img
+                                            src={product.productImages && product.productImages[0]?.imageUrl} // Lấy đường dẫn ảnh từ phần tử đầu tiên trong mảng
+                                            alt={product.name}
+                                            className="w-16 h-16 object-cover mr-4"
+                                        />
+                                        <div>
+                                            <p className="font-semibold">{product.name}</p>
+                                            <p>
+                                                {product.productVariants && product.productVariants[0]?.price.toLocaleString()} ₫ x {product.quantity}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="font-semibold">
+                                        {product.productVariants && product.productVariants[0] ? (product.productVariants[0].price * product.quantity).toLocaleString() : '0'} ₫
+                                    </p>
+                                </div>
+                            ))
+                        ) : (
+                            <p>Không có sản phẩm nào trong giỏ hàng.</p>
+                        )}
                     </div>
-
-                    {/* Other Requirements */}
-                    <textarea
-                        name="other_requirement_order"
-                        id="other_requirement_order"
-                        placeholder="Yêu cầu khác..."
-                        className="w-full p-2 border border-gray-300 rounded-md"
-                    ></textarea>
-
-                    {/* Payment Method */}
-                    <div>
-                        <label className="block text-lg font-semibold mb-2">Hình thức thanh toán</label>
-                        <div className="flex space-x-4">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    name="method_payment"
-                                    value="store"
-                                    id="method_payment_store"
-                                    className="mr-2"
-                                    defaultChecked
-                                />
-                                <label htmlFor="method_payment_store">Thanh toán tại cửa hàng</label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    name="method_payment"
-                                    value="delivery"
-                                    id="method_payment_delivery"
-                                    className="mr-2"
-                                />
-                                <label htmlFor="method_payment_delivery">Thanh toán khi nhận hàng</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Submit Button */}
-                    <div>
-                        <button
-                            type="submit"
-                            id="button_confirm_order"
-                            name="button_confirm_order"
-                            className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700"
-                        >
-                            Xác nhận đặt hàng
-                        </button>
-                    </div>
-                </form>
+                </div>
+                {/* Hiển thị tổng giá */}
+                <div className="w-full flex justify-between items-center mt-8">
+                    <p className="font-semibold">Tổng cộng: <span className='text-red-500 font-bold'>{totalPrice.toLocaleString()} ₫</span></p>
+                    <Button bgColor="primary" onClick={handleConfirmOrder}>
+                        Xác nhận đơn hàng
+                    </Button>
+                </div>
             </div>
+
+
+
+            <ToastContainer />
         </div>
     );
 };
+
+export default OderForm;

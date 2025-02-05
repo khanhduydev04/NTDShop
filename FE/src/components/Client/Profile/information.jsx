@@ -1,71 +1,91 @@
-import { Button } from '@/components/common/Button'
-import React, { useState } from 'react'
+import { Button } from "@/components/common/Button";
+import React, { useEffect, useState } from "react";
 
-export const Information = () => {
+export const Information = ({ user }) => {
     const [formData, setFormData] = useState({
-        name: 'Đinh Phương Nhã',
-        email: 'phuongnha@example.com',
-        phone: '0123456789',
-        address: '123 Đường ABC, Quận XYZ',
+        fullName: "",
+        email: "",
+        phoneNumber: "",
+        address: "",
+        gender: "",
+        dateOfBirth: "",
     });
 
+    useEffect(() => {
+        if (user && Object.keys(user).length > 0) {
+            setFormData({
+                fullName: user.fullName || "",
+                email: user.email || "",
+                phoneNumber: user.phoneNumber || "",
+                address: user.address || "",
+                gender: user.gender || "",
+                dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split("T")[0] : "",
+            });
+        }
+    }, [user]);
+
     return (
-        <div className="">
+        <div>
             <div className="flex justify-center items-center gap-4">
                 <div className="text-center">
                     <img
                         src="https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg"
-                        className='size-24 rounded-full'
+                        className="size-24 rounded-full"
                         alt="Avatar"
                     />
-                    <Button bgColor='text'>
-                        Sửa ảnh
-                    </Button>
+                    <Button bgColor="text">Sửa ảnh</Button>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="col-span-1">
-                    <label htmlFor="name" className="text-md font-semibold">Họ và tên</label>
+                    <label htmlFor="fullName" className="text-md font-semibold">
+                        Họ và tên
+                    </label>
                     <input
                         type="text"
-                        id="name"
-                        value={formData.name}
+                        id="fullName"
+                        value={formData.fullName}
                         className="w-full border border-gray-300 rounded-lg p-2 mt-2"
+                        readOnly
                     />
                 </div>
                 <div className="col-span-1">
-                    <label htmlFor="email" className="text-md font-semibold">Email</label>
+                    <label htmlFor="phoneNumber" className="text-md font-semibold">
+                        Số điện thoại
+                    </label>
                     <input
-                        type="email"
-                        id="email"
-                        value={formData.email}
+                        type="text"
+                        id="phoneNumber"
+                        value={formData.phoneNumber}
                         className="w-full border border-gray-300 rounded-lg p-2 mt-2"
+                        readOnly
                     />
                 </div>
                 <div className="col-span-1">
-                    <label htmlFor="phone" className="text-md font-semibold">Số điện thoại</label>
+                    <label htmlFor="gender" className="text-md font-semibold">
+                        Giới tính
+                    </label>
                     <input
                         type="text"
-                        id="phone"
-                        value={formData.phone}
+                        id="gender"
+                        value={formData.gender}
                         className="w-full border border-gray-300 rounded-lg p-2 mt-2"
+                        readOnly
                     />
                 </div>
                 <div className="col-span-1">
-                    <label htmlFor="address" className="text-md font-semibold">Địa chỉ</label>
+                    <label htmlFor="dateOfBirth" className="text-md font-semibold">
+                        Ngày sinh
+                    </label>
                     <input
-                        type="text"
-                        id="address"
-                        value={formData.address}
+                        type="date"
+                        id="dateOfBirth"
+                        value={formData.dateOfBirth}
                         className="w-full border border-gray-300 rounded-lg p-2 mt-2"
+                        readOnly
                     />
-                </div>
-                <div className="text-center w-full col-span-2">
-                    <Button bgColor='primary' className='w-1/3'>
-                        Cập nhật thông tin
-                    </Button>
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};

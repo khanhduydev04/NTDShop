@@ -15,18 +15,23 @@ import {
 } from "lucide-react";
 import { getCategories } from "@/services/category";
 import { getToken, removeToken, decodeToken, isTokenValid } from "@/utils/auth";
+import { useDispatch, useSelector } from "react-redux";
+import { setCart } from "@/store/cartSlice"; 
 
 export const Header = () => {
   const [keyword, setKeyword] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [username, setUsername] = useState("");
-  const debouncedKeyword = useDebounce(keyword, 500); // Delay 500ms
+  const debouncedKeyword = useDebounce(keyword, 500); // Trì hoãn 500ms
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const location = useLocation();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const dispatch = useDispatch();
+  const cartItems = useSelector((state) => state.cart.items);
+  const cartCount = useSelector((state) => state.cart.items.reduce((total, item) => total + item.quantity, 0));
 
   useEffect(() => {
     const token = getToken();
@@ -51,7 +56,7 @@ export const Header = () => {
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (debouncedKeyword) {
+      if (debouncedKeyword.trim()) {
         const result = await searchProducts({ keyword: debouncedKeyword });
         setSuggestions(result || []);
       } else {
@@ -61,6 +66,20 @@ export const Header = () => {
     fetchSuggestions();
   }, [debouncedKeyword]);
 
+  useEffect(() => {
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      dispatch(setCart(cart)); // Đồng bộ giỏ hàng với Redux
+    };
+
+    window.addEventListener("cartUpdated", updateCartCount);
+    updateCartCount(); // Cập nhật ngay khi component mount
+
+    return () => {
+      window.removeEventListener("cartUpdated", updateCartCount);
+    };
+  }, [dispatch]);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (keyword.trim()) {
@@ -68,15 +87,15 @@ export const Header = () => {
       setIsDialogOpen(false);
       setIsSearchOpen(false);
     }
-    setKeyword("");
   };
+
 
   const handleLogout = () => {
     removeToken();
     setUsername("");
   };
 
-  return (
+    return (
     <>
       <header className="bg-primary shadow-lg lg:fixed top-0 w-full z-50">
         <div className="container mx-auto flex items-center justify-between py-5">
@@ -213,7 +232,7 @@ export const Header = () => {
                 className="size-5 mr-2"
               />
               <span>
-                Giỏ hàng <strong className="number_cart">0</strong>
+                Giỏ hàng <strong className="number_cart">{cartCount}</strong>
               </span>
             </Link>
           </div>
@@ -334,7 +353,7 @@ export const Header = () => {
             <ShoppingCart className="w-6 h-6" />
             <span>Giỏ hàng</span>
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1">
-              1
+              {cartCount}
             </span>
           </Link>
         </div>

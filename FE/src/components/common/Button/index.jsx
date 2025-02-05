@@ -17,7 +17,9 @@ export const Button = ({
         case "primary":
             bgClassName = "bg-primary text-white";
             break;
-
+        case "primary-sm":
+            bgClassName = "bg-primary text-white text-sm";
+            break;
         case "outline":
             bgClassName = "bg-white border border-primary text-primary";
             break;
