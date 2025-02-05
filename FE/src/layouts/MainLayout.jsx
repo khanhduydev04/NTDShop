@@ -7,7 +7,7 @@ export const MainLayout = () => {
   return (
     <div className="relative min-h-screen">
       <Header />
-      <main className="text-black bg-white pt-[110px]">
+      <main className="text-black bg-gray-100 pt-[110px]">
         <Outlet />
       </main>
       <Footer />

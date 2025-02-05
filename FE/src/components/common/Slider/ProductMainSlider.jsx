@@ -36,6 +36,7 @@ const ProductMainSlider = ({ data }) => {
                   price={item.price}
                   slug={item.slug}
                   sale={item.priceSale}
+                  variantId={item.productVariants}
                 ></ProductCard>
               </CarouselItem>
             ))

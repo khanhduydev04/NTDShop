@@ -1,79 +1,91 @@
 import { Button } from '@/components/common/Button';
+import { getProductsFilterCart } from '@/services/product';
 import { faShoppingCart, faTrash, faTruck, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { removeFromCart, updateCart, addToCart } from '@/store/cartSlice';
 
 export const CartPage = () => {
-    const [products, setProducts] = useState([
-        {
-            id: 1,
-            name: 'Macbook Air M2 13inch 8GB 256GB | New',
-            price: 19890000,
-            quantity: 1,
-            image: 'https://imgt.taimienphi.vn/cf/Images/np/2022/9/7/hinh-anh-cute-dep-de-thuong-nhat-11.jpg',
-        },
-        {
-            id: 2,
-            name: 'iPhone 14 Pro Max 128GB',
-            price: 29990000,
-            quantity: 1,
-            image: 'https://imgt.taimienphi.vn/cf/Images/np/2022/9/7/hinh-anh-cute-dep-de-thuong-nhat-11.jpg',
-        },
-        {
-            id: 3,
-            name: 'Apple Watch Series 8',
-            price: 9990000,
-            quantity: 1,
-            image: 'https://imgt.taimienphi.vn/cf/Images/np/2022/9/7/hinh-anh-cute-dep-de-thuong-nhat-11.jpg',
-        },
-    ]);
+    const dispatch = useDispatch();
+    const cartProducts = useSelector((state) => state.cart.items);
+    const [loading, setLoading] = useState(true);
+    const [totalPrice, setTotalPrice] = useState(0);
+    const [products, setProducts] = useState([]);
 
-    const handleIncrement = (id) => {
-        setProducts((prevProducts) =>
-            prevProducts.map((product) =>
-                product.id === id ? { ...product, quantity: product.quantity + 1 } : product
-            )
-        );
+    useEffect(() => {
+        const fetchCartProducts = async () => {
+            const productIds = cartProducts.map(item => item.id);
+            if (productIds.length === 0) {
+                setLoading(false);
+                return;
+            }
+            const products = await getProductsFilterCart({ ids: productIds });
+            const productsWithQuantity = products.map(product => {
+                const cartItem = cartProducts.find(item => item.id === product.id);
+                if (cartItem) {
+                    return { ...product, quantity: cartItem.quantity, variantId: cartItem.variantId };
+                }
+                return null;
+            }).filter(product => product !== null);            
+            setProducts(productsWithQuantity);
+            setLoading(false);
+            calculateTotalPrice(productsWithQuantity);
+        };
+        fetchCartProducts();
+    }, [cartProducts]);
+
+    const calculateTotalPrice = (products) => {
+        const total = products.reduce((sum, product) => {
+            const variant = product.productVariants?.find(v => v.id === product.variantId);
+            const price = variant ? variant.price : 0;
+            return sum + (price * product.quantity);
+        }, 0);
+        setTotalPrice(total);
     };
 
-    const handleDecrement = (id) => {
-        setProducts((prevProducts) =>
-            prevProducts.map((product) =>
-                product.id === id && product.quantity > 1
-                    ? { ...product, quantity: product.quantity - 1 }
-                    : product
-            )
-        );
+    const handleQuantityChange = (productId, variantId, delta) => {
+        const updatedCartProducts = cartProducts.map(product => {
+            if (product.id === productId && product.variantId === variantId) {
+                const newQuantity = product.quantity + delta;
+                return newQuantity > 0 ? { ...product, quantity: newQuantity } : null;
+            }
+            return product;
+        }).filter(product => product !== null);
+
+        const updatedProduct = updatedCartProducts.find(product => product.id === productId && product.variantId === variantId);
+        if (updatedProduct) {
+            dispatch(addToCart({ id: productId, variantId, quantity: updatedProduct.quantity }));
+        }
+        calculateTotalPrice(updatedCartProducts);
     };
 
-    const handleDelete = (id) => {
-        setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
+    const handleRemoveProduct = (productId, variantId) => {
+        const updatedCartProducts = cartProducts.filter(product => !(product.id === productId && product.variantId === variantId));
+        dispatch(removeFromCart({ id: productId, variantId }));
+        calculateTotalPrice(updatedCartProducts);
     };
 
-    const totalPrice = products.reduce(
-        (total, product) => total + product.price * product.quantity,
-        0
-    );
-
+    const handleCheckout = () => {
+        if (!isLoggedIn) {
+            navigate('/login');
+        } else {
+            navigate('/thong-tin-dat-hang', { state: cartProducts });
+        }
+    }; 
     return (
-        <div className="box-ordering-steps p-4 max-w-screen-lg mx-auto">
-            {/* Back Button */}
-            <Link
-                to="/"
-                className="button-comeback flex items-center cursor-pointer mb-4"
-            >
+        <div className="w-3/4 box-ordering-steps p-4 max-w-screen-lg mx-auto">
+            <Link to="/" className="button-comeback flex items-center cursor-pointer mb-4">
                 <span className="flex items-center text-primary">
                     <i className="icon-back mr-2"></i> Quay lại
                 </span>
             </Link>
 
-            {/* Title */}
             <div className="title-shopping-cart mb-8 text-center">
                 <h1 className="text-2xl font-bold text-primary">Chọn sản phẩm</h1>
             </div>
 
-            {/* Steps */}
             <ul className="flex justify-center items-center md:gap-20 mb-8">
                 <li className="flex flex-col items-center text-center relative step-item">
                     <span className="h-12 w-12 flex justify-center items-center rounded-full border border-primary">
@@ -95,80 +107,58 @@ export const CartPage = () => {
                 </li>
             </ul>
 
-            {/* Product List */}
-            <div className="w-full flex justify-center items-center py-6">
-                <div className="grid justify-center items-center gap-6 w-full lg:w-3/4">
-                    {products.map((product) => (
-                        <div
-                            key={product.id}
-                            className="border rounded-lg p-4 shadow-md flex flex-col sm:flex-row gap-4"
-                        >
-                            {/* Product Image */}
-                            <div className="w-24 h-24 flex-shrink-0">
-                                <img
-                                    src={product.image}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover rounded-lg"
-                                />
-                            </div>
-
-                            {/* Product Info */}
-                            <div className="info-product-shopping flex-grow">
-                                <div className="name-product-shopping font-semibold text-lg">
-                                    {product.name}
+            {loading ? (
+                <div className="text-center">Đang tải sản phẩm...</div>
+            ) : products.length === 0 ? (
+                <div className="text-center text-gray-600">Chưa có sản phẩm nào trong giỏ hàng.</div>
+            ) : (
+                <div className="w-full flex justify-center items-center py-6">
+                    <div className="grid justify-center items-center gap-6 w-full lg:w-3/4">
+                        {products.map((product) => {
+                            console.log(product);
+                            const variant = product.productVariants?.find(v => v.id === product.variantId);                            
+                            const price = variant ? variant.price : 0;                            
+                            const image = product.thumbnail;
+                            return (
+                                <div key={`${product.id}-${variant?.id}`} className="border rounded-lg p-4 shadow-md flex flex-col sm:flex-row gap-4">
+                                    <div className="w-24 h-24 flex-shrink-0">
+                                        <img src={image} alt={product.name} className="w-full h-full object-cover rounded-lg" />
+                                    </div>
+                                    <div className="info-product-shopping flex-grow">
+                                        <div className="name-product-shopping font-semibold text-lg">{product.name}</div>
+                                        <div className="price-product-shopping my-2 text-gray-700">Giá: <strong className="text-red-500">{price.toLocaleString()} ₫</strong></div>
+                                        <div className="total-product-shopping my-2 text-gray-700">Tổng tiền: <strong className="text-red-500 ml-2">{(price * product.quantity).toLocaleString()} ₫</strong></div>
+                                    </div>
+                                    <div className="flex items-center justify-between sm:justify-start sm:gap-2">
+                                        <button className="px-3 py-1 border rounded-lg bg-gray-200 hover:bg-gray-300" onClick={() => handleQuantityChange(product.id, variant?.id, -1)}>-</button>
+                                        <strong className="mx-4 sm:mx-2">{product.quantity}</strong>
+                                        <button className="px-3 py-1 border rounded-lg bg-gray-200 hover:bg-gray-300" onClick={() => handleQuantityChange(product.id, variant?.id, 1)}>+</button>
+                                    </div>
+                                    <div className="flex justify-end items-center sm:justify-start">
+                                        <button className="flex justify-center items-center text-red-500 w-10 h-10 p-4 border rounded-lg hover:text-red-700" onClick={() => handleRemoveProduct(product.id, variant?.id)}>
+                                            <FontAwesomeIcon icon={faTrash} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="price-product-shopping my-2 text-gray-700">
-                                    Giá: <strong className="text-red-500">{product.price.toLocaleString()} ₫</strong>
-                                </div>
-                                <div className="total-product-shopping my-2 text-gray-700">
-                                    Tổng tiền:
-                                    <strong className="text-red-500 ml-2">
-                                        {(product.price * product.quantity).toLocaleString()} ₫
-                                    </strong>
-                                </div>
-                            </div>
-
-                            {/* Quantity Controls */}
-                            <div className="flex items-center justify-between sm:justify-start sm:gap-2">
-                                <button
-                                    className="px-3 py-1 border rounded-lg bg-gray-200 hover:bg-gray-300"
-                                    onClick={() => handleDecrement(product.id)}
-                                >
-                                    -
-                                </button>
-                                <strong className="mx-4 sm:mx-2">{product.quantity}</strong>
-                                <button
-                                    className="px-3 py-1 border rounded-lg bg-gray-200 hover:bg-gray-300"
-                                    onClick={() => handleIncrement(product.id)}
-                                >
-                                    +
-                                </button>
-                            </div>
-
-                            {/* Delete Button */}
-                            <div className="flex justify-end items-center sm:justify-start">
-                                <button
-                                    className="flex justify-center items-center text-red-500 w-10 h-10 p-4 border rounded-lg hover:text-red-700"
-                                    onClick={() => handleDelete(product.id)}
-                                >
-                                    <FontAwesomeIcon icon={faTrash} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-
-                    {/* Total Price and Checkout */}
-                    <div className="w-full flex flex-col sm:flex-row justify-between items-center mt-6">
-                        <div className="text-center sm:text-left mb-4 sm:mb-0">
-                            <p className="text-lg font-medium text-gray-600">Tổng tiền:</p>
-                            <p className="text-xl font-bold text-red-500">{totalPrice.toLocaleString()} VND</p>
-                        </div>
-                        <Button bg="primary" className="w-full sm:w-auto px-6 py-2">
-                            Tiến hành đặt hàng
-                        </Button>
+                            );
+                        })}
                     </div>
                 </div>
-            </div>
+            )}
+
+            {cartProducts.length > 0 && (
+                <div className="w-full flex flex-col sm:flex-row justify-between items-center mt-6">
+                    <div className="text-center sm:text-left mb-4 sm:mb-0">
+                        <p className="text-lg font-medium text-gray-600">Tổng tiền:</p>
+                        <p className="text-xl font-bold text-red-500">{totalPrice.toLocaleString()} ₫</p>
+                    </div>
+                    <Link to="/thong-tin-dat-hang" state={cartProducts} className="button-primary w-full sm:w-auto px-6 py-2">
+                        <Button bg="primary" className="w-full sm:w-auto px-6 py-2">Tiến hành đặt hàng</Button>
+                    </Link>
+                </div>
+            )}
         </div>
     );
 };
+
+export default CartPage;

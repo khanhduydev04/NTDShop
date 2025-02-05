@@ -21,7 +21,7 @@ public class AddressController : ControllerBase
     {
         var defaultAddress = await _addressService.GetDefaultAddressAsync(userId);
         if (defaultAddress == null)
-            return NotFound(new { message = "Không có địa chỉ mặc định nào được thiết lập." });
+            return Ok(new { message = "chưa có địa chỉ mặc định nào được thiết lập." });
 
         return Ok(defaultAddress);
     }
@@ -63,7 +63,7 @@ public class AddressController : ControllerBase
     {
         var addresses = await _addressService.GetAllAddressAsync(userId);
         if (addresses.Count == 0)
-            return NotFound(new { message = "Người dùng chưa có địa chỉ nào." });
+            return Ok(new { message = "Người dùng chưa có địa chỉ nào." });
 
         return Ok(addresses);
     }

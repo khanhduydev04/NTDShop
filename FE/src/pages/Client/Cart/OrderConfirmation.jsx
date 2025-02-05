@@ -1,89 +1,103 @@
-import { faShoppingCart, faTruck, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faShoppingCart, faUser, faTruck } from '@fortawesome/free-solid-svg-icons';
+import { getOrderById } from '@/services/order';
+import { Button } from '@/components/common/Button';
 
 const OrderConfirmation = () => {
+    const { id } = useParams();
+    const [order, setOrder] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchOrder = async () => {
+            try {
+                const response = await getOrderById(id);
+                setOrder(response);
+            } catch (error) {
+                setError(error.response ? error.response.data : error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchOrder();
+        }
+    }, [id]);
+
+    if (loading) {
+        return <div className="text-center text-gray-500">Đang tải...</div>;
+    }
+
+    if (error) {
+        return <div className="text-center text-red-500">Lỗi: {error}</div>;
+    }
+
+    if (!order) {
+        return <div className="text-center text-red-500">Không tìm thấy đơn hàng</div>;
+    }
+
+    const totalPrice = order.orderDetails.reduce((total, detail) => total + detail.price * detail.quantity, 0) + order.deliveryCost;
+
     return (
-        <div className="box-ordering-steps p-4 max-w-screen-lg mx-auto">
-            {/* Back Button */}
-            <Link
-                to="/"
-                className="button-comeback flex items-center cursor-pointer mb-4"
-            >
-                <span className="flex items-center text-primary">
-                    <i className="icon-back mr-2"></i> Quay lại
-                </span>
-            </Link>
-
-            {/* Title */}
-            <div className="title-shopping-cart mb-8 text-center">
-                <h1 className="text-2xl font-bold text-primary">Chọn sản phẩm</h1>
+        <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
+            <h1 className="text-3xl font-semibold text-center text-primary mb-6">Xác nhận đơn hàng</h1>
+            <div className="grid grid-cols-3 gap-4 mb-6 text-center">
+                {[faShoppingCart, faUser, faTruck].map((icon, index) => (
+                    <div key={index} className="flex flex-col items-center text-gray-600">
+                        <div className="w-12 h-12 flex items-center justify-center rounded-full border border-primary mb-2">
+                            <FontAwesomeIcon icon={icon} className="text-primary w-6" />
+                        </div>
+                        <span className="text-sm">{index === 0 ? "Chọn sản phẩm" : index === 1 ? "Thông tin đặt hàng" : "Hoàn tất"}</span>
+                    </div>
+                ))}
             </div>
 
-            {/* Steps */}
-            <ul className="flex justify-center items-center md:gap-20 mb-8">
-                <li className="flex flex-col items-center text-center relative step-item">
-                    <span className="h-12 w-12 flex justify-center items-center rounded-full border border-primary">
-                        <FontAwesomeIcon icon={faShoppingCart} className="w-6 text-primary" />
-                    </span>
-                    <span className="mt-2 text-sm md:text-base text-primary">Chọn sản phẩm</span>
-                </li>
-                <li className="flex flex-col items-center text-center relative step-item">
-                    <span className="h-12 w-12 flex justify-center items-center rounded-full border border-primary">
-                        <FontAwesomeIcon icon={faUser} className="w-6  text-primary" />
-                    </span>
-                    <span className="mt-2 text-sm md:text-base text-primary">Thông tin đặt hàng</span>
-                </li>
-                <li className="flex flex-col items-center text-center relative step-item">
-                    <span className="h-12 w-12 flex justify-center items-center rounded-full border border-primary">
-                        <FontAwesomeIcon icon={faTruck} className="w-6 text-primary" />
-                    </span>
-                    <span className="mt-2 text-sm md:text-base text-primary">Hoàn tất đặt hàng</span>
-                </li>
-            </ul>
-
-            <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg mt-8">
-                <p className="text-gray-700 text-base">
-                    Cảm ơn Quý khách hàng đã chọn mua hàng tại T&amp;T Center. Trong 15 phút, T&amp;T Center sẽ gửi SMS hoặc gọi để xác nhận đơn hàng.
-                </p>
-                <p className="text-gray-700 text-sm mt-2">
-                    * Các đơn hàng từ 21h30 tối tới 8h sáng hôm sau. T&amp;T Center sẽ liên hệ với Quý khách trước 10h trưa cùng ngày.
-                </p>
-                <div className="text-center mt-6">
-                    <h2 className="text-2xl font-bold text-primary">Đặt hàng thành công</h2>
+            <div className="bg-white p-6 rounded-lg shadow-md border border-primary mb-6">
+                <h3 className="text-xl font-semibold text-primary text-center mb-4">Chi tiết đơn hàng</h3>
+                <div className="mb-4">
+                    <p><span className='font-semibold'>Mã đơn hàng:</span> {order.id}</p>
+                    <p><span className='font-semibold'>Ngày đặt hàng:</span> {new Date(order.dateOrder).toLocaleDateString()}</p>
+                    <p><span className='font-semibold'>Ngày nhận hàng dự ki:</span> {new Date(order.dateReceive).toLocaleDateString()}</p>
+                    <p><span className='font-semibold'>Trạng thái:</span> {order.status}</p>
+                    <p><span className='font-semibold'>Phương thức thanh toán:</span> {order.paymentMethod}</p>
+                    <p><span className='font-semibold'>Tình trạng thanh toán:</span> {order.paymentStatus}</p>
                 </div>
-                <div className="mt-6 space-y-3 border border-2 border-primary p-4 rounded-lg">
-                    <p className="text-gray-800">
-                        Người đặt: <strong className="font-medium">ho tran</strong>
-                    </p>
-                    <p className="text-gray-800">
-                        Số Điện Thoại: <strong className="font-medium">0912022074</strong>
-                    </p>
-                    <p className="text-gray-800">
-                        Email: <strong className="font-medium">tranhdmpc@gmail.com</strong>
-                    </p>
-                    <p className="text-gray-800">
-                        Địa chỉ: <strong className="font-medium">478 Lê Hồng Phong, Quận 10, TP.HCM</strong>
-                    </p>
-                    <p className="text-gray-800">
-                        Hình thức thanh toán: <strong className="font-medium">Thanh toán tại cửa hàng</strong>
-                    </p>
-                    <p className="text-gray-800">
-                        Tổng Tiền thanh toán: <strong className="font-medium text-red-600">11.890.000 ₫</strong>
-                    </p>
+                <div className="mb-4">
+                    <h4 className="font-semibold mb-2">Sản phẩm</h4>
+                    {order.orderDetails.map((detail, index) => (
+                        <div key={index} className="flex justify-between items-center mb-2">
+                            <div className="flex items-center">
+                                <img src={detail.productVariant.product.thumbnail} alt={detail.productVariant.product.name} className="w-16 h-16 object-cover rounded-lg mr-4" />
+                                <div>
+                                    <p className="font-semibold">{detail.productVariant.product.name}</p>
+                                    <p className="text-sm">Màu sắc: {detail.productVariant.color}</p>
+                                    <p className="text-sm">Dung lượng: {detail.productVariant.storage}</p>
+                                </div>
+                            </div>
+                            <p className="text-sm">{detail.quantity} x {detail.price.toLocaleString()} ₫</p>
+                        </div>
+                    ))}
                 </div>
-                <div className="mt-8 text-center">
-                    <a
-                        href="https://ttcenter.com.vn"
-                        rel="nofollow"
-                        className="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg transition duration-300"
-                    >
-                        Tiếp tục mua hàng
-                    </a>
+                <div className="flex justify-between items-center font-semibold mt-3">
+                    <p>Phí vận chuyển:</p>
+                    <p>{order.deliveryCost.toLocaleString()} ₫</p>
+                </div>
+                <div className="flex justify-between items-center font-semibold mt-4">
+                    <p>Tổng cộng:</p>
+                    <p className="text-red-500">{totalPrice.toLocaleString()} ₫</p>
+                </div>
+                <div className="w-full text-center mt-6">
+                    <Link to={'/'}>
+                        <Button bgColor='primary-sm'>
+                            Tiếp tục mua hàng
+                        </Button>
+                    </Link>
                 </div>
             </div>
-
         </div>
     );
 };
