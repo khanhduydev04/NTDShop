@@ -190,7 +190,7 @@ const HomePage = () => {
           <Skeleton className="h-10 w-[250px]" />
           <Skeleton className="h-10 w-[100px] rounded-full" />
         </div>
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {Array.from({ length: 5 }).map((_, index) => (
             <ProductSkeleton key={index} />
           ))}
@@ -204,12 +204,12 @@ const HomePage = () => {
       <Banner />
       <div className="w-full bg-[url('/images/background_flashsale.jpg')] bg-center bg-cover mb-16">
         <div className="container py-10">
-          <div className="flex justify-between mb-3">
-            <h2 className="uppercase text-[30px] font-bold italic text-[#FAFF00] drop-shadow">
+          <div className="flex flex-col gap-2 items-center md:flex-row md:justify-between mb-3">
+            <h2 className="uppercase text-2xl lg:text-[30px] font-bold italic text-[#FAFF00] drop-shadow">
               <img
                 src="/images/lightning.png"
                 alt=""
-                className="w-[50px] inline align-middle"
+                className="w-[30px] lg:w-[50px] inline align-middle"
               />
               Flash sale cực hot
             </h2>

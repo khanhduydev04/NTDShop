@@ -15,7 +15,7 @@ const ProductCard = ({ id, slug, name, thumbnail, price, sale, variantId }) => {
       to={`/san-pham/${slug}`}
       className="w-full relative h-full flex justify-between"
     >
-      <Card className="py-7 px-5 group shadow-custom border border-white hover:border-gray-200">
+      <Card className="py-5 lg:py-7 px-3 lg:px-5 group shadow-custom border border-white hover:border-gray-200">
         <div className="overflow-hidden">
           <img
             src={thumbnail}
@@ -38,7 +38,7 @@ const ProductCard = ({ id, slug, name, thumbnail, price, sale, variantId }) => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <p className="text-textPrimary font-semibold text-lg">
+          <p className="text-textPrimary font-semibold text-base lg:text-lg">
             {formatCurrency(price)}
           </p>
           {sale > 0 && (

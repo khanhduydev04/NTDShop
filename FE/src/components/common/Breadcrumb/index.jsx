@@ -1,25 +1,20 @@
-import React from "react";
-
 export const Breadcrumb = () => {
   const breadcrumbItems = [
     { name: "Trang chủ", href: "/" },
     { name: "Sản phẩm", href: "/san-pham" },
-    { name: "Chi tiết sản phẩm", href: null }, 
+    { name: "Chi tiết sản phẩm", href: null },
   ];
 
   return (
     <nav
-      className="breadcrumb text-sm py-4 bg-gray-100 px-4 rounded-md"
+      className="breadcrumb text-xs lg:text-sm p-2 lg:p-4 bg-gray-100 rounded-md"
       aria-label="Breadcrumb"
     >
       <ol className="flex space-x-2">
         {breadcrumbItems.map((item, index) => (
           <li key={index} className="flex items-center">
             {item.href ? (
-              <a
-                href={item.href}
-                className="text-blue-500 hover:underline"
-              >
+              <a href={item.href} className="text-blue-500 hover:underline">
                 {item.name}
               </a>
             ) : (
@@ -34,4 +29,3 @@ export const Breadcrumb = () => {
     </nav>
   );
 };
-

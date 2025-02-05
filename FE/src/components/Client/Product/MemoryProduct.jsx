@@ -19,7 +19,7 @@ export const LaptopMemoryList = ({
           <a
             href="#"
             title={variant.storage || "Memory Variant"}
-            className="flex flex-col items-start py-2 px-4"
+            className="text-sm lg:text-base flex flex-col items-start py-1 px-3 lg:py-2 lg:px-4"
             onClick={(e) => {
               e.preventDefault();
               onMemorySelect(variant.id);

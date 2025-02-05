@@ -1,4 +1,10 @@
-import { Navigation, Pagination, Scrollbar, A11y } from "swiper/modules";
+import {
+  Navigation,
+  Pagination,
+  Scrollbar,
+  A11y,
+  Autoplay,
+} from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useState, useRef } from "react";
 import "swiper/css";
@@ -58,21 +64,25 @@ export default function Banner() {
   };
 
   return (
-    <div className="container flex flex-col lg:flex-row justify-between items-center gap-2 mb-10">
+    <div className="container flex flex-col lg:flex-row justify-between gap-2 mb-10">
       <div className="w-full lg:w-3/4">
         <Swiper
           ref={swiperRef}
-          modules={[Navigation, Pagination, Scrollbar, A11y]}
+          modules={[Navigation, Pagination, Scrollbar, A11y, Autoplay]}
           spaceBetween={50}
           slidesPerView={1}
           // navigation
           pagination={{ clickable: true }}
           loop={true}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
+          autoplay={{
+            delay: 4000,
+            disableOnInteraction: false,
+          }}
         >
           {sliderData.map((item, index) => (
             <SwiperSlide key={index}>
-              <div className="w-full h-[300px] lg:h-[370px] bg-white flex items-center justify-center rounded-t-lg overflow-hidden">
+              <div className="w-full rounded-lg lg:h-[370px] bg-white flex items-center justify-center lg:rounded-t-lg overflow-hidden">
                 <img
                   src={item.image}
                   alt={`Slide ${index + 1}`}
@@ -83,7 +93,7 @@ export default function Banner() {
           ))}
         </Swiper>
 
-        <div className="w-full sm:none lg:h-[90px] flex overflow-x-auto border-l-2 border-b-2 border-gray-100 rounded-b-lg">
+        <div className="hidden w-full sm:none lg:h-[90px] lg:flex overflow-x-auto border-l-2 border-b-2 border-gray-100 rounded-b-lg">
           {sliderData.slice(0, 4).map((item, index) => (
             <div
               key={index}
@@ -96,7 +106,7 @@ export default function Banner() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/4 flex flex-col gap-2">
+      <div className="hidden w-full lg:w-1/4 md:flex md:flex-row lg:flex-col gap-2">
         <div className="">
           <img
             src="https://ttcenter.com.vn/uploads/gallery/full_macbook-air-m3-chi-tu-23-000-000d-bao-hanh-len-den-3-nam-1735894269.webp"

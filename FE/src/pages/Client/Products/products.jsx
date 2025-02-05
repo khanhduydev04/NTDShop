@@ -122,6 +122,7 @@ const Products = () => {
 
   const fetchData = async (isLoadMore = false, customOffset = offset) => {
     try {
+      setLoading(true);
       const params = {
         needId: selectedNeed,
         pricingValue: selectedPricing,
@@ -141,7 +142,7 @@ const Products = () => {
       }
       setRemainingData(data.remaining_data);
     } catch (error) {
-      console.error("Lỗi khi gọi API:", error);
+      console.error("Lỗi khi gọi API sản phẩm:", error);
     } finally {
       setLoading(false);
     }
@@ -157,26 +158,30 @@ const Products = () => {
     selectedName,
   ]);
 
+  useEffect(() => {
+    const fetchAdditionalData = async () => {
+      try {
+        const [needsData, categoriesData] = await Promise.all([
+          getNeeds(),
+          getCategories(),
+        ]);
+        setNeeds(needsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error("Lỗi khi gọi API danh mục & nhu cầu:", error);
+      }
+    };
+
+    fetchAdditionalData();
+  }, []);
+
   const handleLoadMore = () => {
-    if (loading) return;
+    if (loading || remainingData === 0) return;
 
     const newOffset = offset + limit;
-    setLoading(true);
     setOffset(newOffset);
     fetchData(true, newOffset);
   };
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      const [needsData, categoriesData] = await Promise.all([
-        getNeeds(),
-        getCategories(),
-      ]);
-      setNeeds(needsData);
-      setCategories(categoriesData);
-    };
-    fetchInitialData();
-  }, []);
 
   return (
     <div className="py-5 container">
@@ -205,7 +210,7 @@ const Products = () => {
               <Badge
                 key={need.id}
                 variant={selectedNeed === need.id ? "primary" : "secondary"}
-                className="px-5 py-2.5 rounded-full select-none mr-2.5 mb-2.5 leading-5"
+                className="px-4 py-2 lg:px-5 lg:py-2.5 rounded-full select-none mr-2.5 mb-2.5 leading-5"
                 onClick={() => updateURLParams("nhu-cau", need.id)}
               >
                 {need.name}
@@ -220,7 +225,7 @@ const Products = () => {
             variant={
               Number(selectedPricing) === price.value ? "primary" : "secondary"
             }
-            className="px-5 py-2.5 rounded-full select-none mr-2.5 mb-2.5 leading-5"
+            className="px-4 py-2 lg:px-5 lg:py-2.5 rounded-full select-none mr-2.5 mb-2.5 leading-5"
             onClick={() => updateURLParams("muc-gia", price.value)}
           >
             {price.title}
@@ -232,7 +237,7 @@ const Products = () => {
           <Badge
             key={filter.value}
             variant={selectedFilter === filter.value ? "primary" : "secondary"}
-            className="px-5 py-2.5 rounded-full select-none mr-2.5 mb-2.5 leading-5"
+            className="px-4 py-2 lg:px-5 lg:py-2.5 rounded-full select-none mr-2.5 mb-2.5 leading-5"
             onClick={() => updateURLParams("sap-xep", filter.value)}
           >
             {FILTER_ICONS[index]?.icon}
@@ -240,7 +245,7 @@ const Products = () => {
           </Badge>
         ))}
       </div>
-      <div className="grid grid-cols-5 gap-3 mt-5 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mt-5 mb-10">
         {loading ? (
           products.length > 0 ? (
             <>
